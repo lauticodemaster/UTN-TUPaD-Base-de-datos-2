@@ -99,7 +99,7 @@ CREATE INDEX idx_producto_no_eliminado ON producto(nombre)
 -- Permite NULL (usuario sin celular) pero si tiene valor solo dígitos
 ALTER TABLE usuario
   ADD CONSTRAINT chk_usuario_celular_solo_numeros
- CHECK (celular IS NULL OR celular ~ '^[0-9]{10}$')
+ CHECK (celular IS NULL OR celular ~ '^[0-9]{10}$');
 
 
 -- Se añade constraint más estricto
@@ -112,4 +112,3 @@ ALTER TABLE producto
 ALTER TABLE usuario
   ADD CONSTRAINT chk_usuario_contrasena_min8
   CHECK (char_length(contrasena) >= 8);
-```
