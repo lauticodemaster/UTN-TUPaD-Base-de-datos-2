@@ -1,10 +1,10 @@
-Tecnicatura Universitaria en Programación de la Universidad Tecnológica Nacional, 2pro1.
+# Tecnicatura Universitaria en Programación de la Universidad Tecnológica Nacional, 2pro1.
 
-Base de Datos 2.
+## Base de Datos 2.
 Docente: Carlos Yácomo.
 
 
-Diseño e Implementación de una Base de Datos Relacional para la Gestión de Pedidos de Comida.
+## Diseño e Implementación de una Base de Datos Relacional para la Gestión de Pedidos de Comida.
 Grupo H: Saferazi.
 Integrantes: Lautaro Fernandez,
              Daniela Díaz,
@@ -13,7 +13,7 @@ Integrantes: Lautaro Fernandez,
              Elio Marí.
 
 
-Archivos SQL
+## Archivos SQL
 1. schema.sql: contiene tipos, tablas, restricciones, índices.
 2. data.sql: contiene datos de ejemplo (seed) suficientes para probar todas las consultas.
 3. objects.sql: contiene vistas, funciones, procedimientos y triggers.
@@ -21,7 +21,7 @@ Archivos SQL
 5. transacciones.sql: contiene scripts de los escenarios transaccionales y de concurrencia.
 
 
-Instrucciones:
+## Instrucciones:
 1. Crea una base de datos de nombre cualquiera y añade un schema de nombre foodstore.
 2. Ejecuta schema.sql entero.
 3. Ejecuta data.sql SÓLO HASTA cargar la tabla pedidos.
