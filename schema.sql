@@ -85,3 +85,31 @@ CREATE INDEX idx_producto_categoria_id ON producto(categoria_id);
 CREATE INDEX idx_pedido_usuario_id ON pedido(usuario_id);
 CREATE INDEX idx_producto_no_eliminado ON producto(nombre)
 	WHERE eliminado = FALSE;
+
+	ALTER TABLE usuario
+  ADD CONSTRAINT chk_usuario_mail_no_vacio
+  CHECK (char_length(trim(mail)) > 0);
+
+
+-- Alternativa estricta email completo:
+ ALTER TABLE usuario ADD CONSTRAINT chk_usuario_mail_formato
+   CHECK (mail ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$');
+
+-- usuario.celular solo números
+-- Permite NULL (usuario sin celular) pero si tiene valor solo dígitos
+ALTER TABLE usuario
+  ADD CONSTRAINT chk_usuario_celular_solo_numeros
+ CHECK (celular IS NULL OR celular ~ '^[0-9]{10}$')
+
+
+-- Se añade constraint más estricto
+ALTER TABLE producto
+  ADD CONSTRAINT chk_producto_precio_positivo
+  CHECK (precio > 0);
+
+
+-- usuario.contrasena al menos 8 caracteres
+ALTER TABLE usuario
+  ADD CONSTRAINT chk_usuario_contrasena_min8
+  CHECK (char_length(contrasena) >= 8);
+```
