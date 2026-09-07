@@ -1,0 +1,5 @@
+## Declaración de Uso de IA (DUIA) 
+
+| Herramienta | Para qué se usó | Prompt / spec (resumen) | Se aceptó / se descartó — por qué |
+|---|---|---|---|
+| Claude (Anthropic), vía chat | Generar una explicación "a ciegas" (sin más contexto que el texto del plan) del plan real de la Consulta 1 obtenido en la Parte 2, y luego contrastar esa explicación frase por frase contra el plan real para detectar imprecisiones | Se pasó únicamente el texto crudo del `EXPLAIN ANALYZE` de la Consulta 1 y se pidió una explicación nodo por nodo; luego, con el mismo plan a la vista, se pidió marcar cada afirmación como correcta o incorrecta con la evidencia puntual del plan | Se aceptó la explicación inicial tal cual salió (sin corregirla antes de evaluarla), porque el objetivo de la Parte 3 es justamente detectar sus errores, no pedir una versión ya perfecta. Se aceptaron los 7 puntos de contraste de la tabla porque cada uno cita la línea exacta del plan que lo sustenta (cost vs. actual time, rows estimado vs. real, alcance de "Rows Removed by Filter") |
