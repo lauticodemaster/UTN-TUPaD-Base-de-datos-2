@@ -1,4 +1,5 @@
-# Tecnicatura Universitaria en Programación de la Universidad Tecnológica Nacional, 2pro1.
+# Universidad Tecnológica Nacional
+## Tecnicatura universitaria en Programación, 2pro1
 
 ## Base de Datos II.
 **Docente:** Carlos Yácomo.
