@@ -50,6 +50,28 @@ CREATE INDEX idx_dp_top_productos
 -- sobre idx_dp_top_productos.
 DROP INDEX IF EXISTS idx_detalle_pedido_producto_id;
 
+
+-- ----------------------------------------------------------------------------
+-- 2) Ranking de usuarios por gasto acumulado  (queries.sql, analitica C)
+--    spec: specs/spec_indice_ranking_usuarios.md
+--
+-- key = (usuario_id) para el JOIN y el GROUP BY; total viaja en INCLUDE
+-- porque solo se suma: no filtra, no agrupa y no ordena, asi que no tiene
+-- por que participar del orden del arbol.
+--
+-- Aca INCLUDE si conviene, al reves que en el indice 1: usuario_id tiene
+-- 20.005 valores distintos sobre 200.003 filas, la deduplicacion casi no
+-- tendria nada que comprimir, y meter total en la key encareceria cada
+-- comparacion sin ganar nada.
+--
+-- No es redundante con idx_pedido_usuario_id (schema.sql): ese no es parcial,
+-- asi que sigue siendo el unico que sirve para buscar pedidos de un usuario
+-- incluyendo los dados de baja (HU-PED-04, auditoria).
+CREATE INDEX idx_pedido_ranking_usuarios
+    ON pedido (usuario_id) INCLUDE (total)
+    WHERE eliminado = FALSE;
+
+
 -- ----------------------------------------------------------------------------
 -- Precondicion de los tres: sin visibility map poblado no hay Index Only Scan
 -- que evite el heap, y el planificador vuelve al Seq Scan.
