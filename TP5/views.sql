@@ -88,3 +88,49 @@ REVOKE ALL ON usuario FROM app_lectura;
 -- a ver son las siete columnas que la vista expone. No hace falta
 -- SECURITY DEFINER.
 
+
+-- ============================================================================
+-- PARTE C - Vista materializada
+-- ============================================================================
+
+-- Reporte elegido: facturacion por categoria y mes (queries.sql, analitica B).
+-- Es el caso de libro para materializar: recorre detalle_pedido (800.008),
+-- pedido (200.003) y producto (50.012) para devolver 29 filas.
+--
+-- El ORDER BY del reporte original NO va adentro: una vista materializada es
+-- un conjunto de filas almacenado, y ordenarla al crearla no garantiza nada
+-- sobre el orden en que se lea despues. El orden se pide al consultarla.
+DROP MATERIALIZED VIEW IF EXISTS mv_facturacion_categoria_mes;
+
+CREATE MATERIALIZED VIEW mv_facturacion_categoria_mes AS
+SELECT c.nombre AS categoria,
+       date_trunc('month', ped.fecha)::DATE AS mes,
+       SUM(dp.subtotal) AS facturado
+FROM   detalle_pedido dp
+JOIN   pedido   ped ON ped.id = dp.pedido_id AND ped.eliminado = FALSE
+JOIN   producto pr  ON pr.id  = dp.producto_id
+JOIN   categoria c  ON c.id   = pr.categoria_id
+WHERE  dp.eliminado = FALSE AND c.eliminado = FALSE
+GROUP  BY c.nombre, date_trunc('month', ped.fecha)
+WITH DATA;
+
+-- Indice UNICO sobre la llave natural del GROUP BY.
+-- Sin un indice unico, REFRESH MATERIALIZED VIEW CONCURRENTLY no esta
+-- permitido: PostgreSQL lo necesita para identificar cada fila y aplicar el
+-- delta sin tomar un lock exclusivo sobre la vista. Se crea ahora, aunque el
+-- refresco de hoy sea bloqueante, para no tener que recrear la vista el dia
+-- que el reporte no pueda quedar sin servicio durante el REFRESH.
+CREATE UNIQUE INDEX uq_mv_facturacion_cat_mes
+    ON mv_facturacion_categoria_mes (categoria, mes);
+
+ANALYZE mv_facturacion_categoria_mes;
+
+-- Lectura del reporte (el ORDER BY va aca, no en la vista):
+-- SELECT categoria, mes, facturado
+-- FROM   mv_facturacion_categoria_mes
+-- ORDER  BY mes DESC, facturado DESC;
+--
+-- Refresco:
+--   REFRESH MATERIALIZED VIEW mv_facturacion_categoria_mes;              -- bloqueante
+--   REFRESH MATERIALIZED VIEW CONCURRENTLY mv_facturacion_categoria_mes; -- sin bloquear lectores
+-- La frecuencia propuesta y su justificacion estan en informe_mediciones.md.
