@@ -1,0 +1,56 @@
+
+> build · muse-spark-1.3-contributor-free
+
+Leo la especificación y el esquema para preparar tus índices.
+→ Read TP1/schema.sql
+→ Read TP5/specs/spec_indice_top_productos.md
+Propuestas para `detalle_pedido` (800.008 filas), según `TP5/specs/spec_indice_top_productos.md` y `TP1/schema.sql`:
+
+Consulta:
+`WHERE dp.eliminado = FALSE / JOIN producto_id / SUM(cantidad) / GROUP BY producto_id / ORDER BY agregado / LIMIT 5`
+
+### P1 - Principal recomendada (resuelve el criterio)
+
+```sql
+CREATE INDEX idx_detalle_pedido_top_productos
+ON detalle_pedido (producto_id) INCLUDE (cantidad)
+WHERE (eliminado = FALSE);
+```
+
+* **Tipo:** B-tree (default). Es lo correcto para `JOIN + GROUP BY producto_id`. No aplica Hash (no hace `Index Only Scan`), ni BRIN/GIN/GiST.
+* **Columnas:** key = `(producto_id)`, payload = `(cantidad)`.
+* **¿Parcial?** Sí, `WHERE eliminado = FALSE`. Por qué: el propio spec dice `eliminado ~100% FALSE`, como columna indexada no discrimina nada y solo agranda el índice. Como condición parcial sí sirve: índice más chico, solo filas que usa la consulta, y habilita `Index Only Scan`.
+* **¿Usa INCLUDE?** Sí, `INCLUDE (cantidad)`. Por qué: `cantidad` no se filtra ni se ordena, solo se suma. No necesita participar en el orden del árbol, solo necesita viajar en el índice para que el plan sea `Index Only` sin tocar heap. Es más limpio y barato de mantener que meterla en la key.
+* **Riesgos:**
+  1. No garantiza por sí solo `Heap Fetches: 0`. Requiere `VACUUM` (visibility map) + `ANALYZE` posterior. Sin eso el criterio 2 falla aunque el índice sea correcto.
+  2. El planificador puede seguir prefiriendo `Seq Scan`: la consulta lee ~100% de la tabla, el ahorro es solo leer menos bytes (índice angosto vs heap de ~9.100 páginas). Si no lo elige por defecto, el spec obliga a documentarlo, no a forzar `enable_seqscan`.
+  3. Costo de escritura: todo `INSERT` y todo `UPDATE` de `producto_id/cantidad/eliminado` paga mantenimiento + WAL + espacio (~2-3k páginas estimadas).
+  4. Redundancia parcial con `UNIQUE (pedido_id, producto_id)` de `schema.sql`: duplica espacio.
+
+### P2 - Variante equivalente (si no hay `INCLUDE`)
+
+```sql
+CREATE INDEX idx_detalle_pedido_top_productos_key
+ON detalle_pedido (producto_id, cantidad)
+WHERE (eliminado = FALSE);
+```
+
+* **Tipo:** B-tree parcial.
+* **Columnas:** key compuesta `(producto_id, cantidad)`.
+* **¿Parcial?** Sí, por el mismo motivo que P1.
+* **¿Usa INCLUDE?** No. `cantidad` como 2da columna de key también permite `Index Only Scan`. Útil si el Postgres es <11 (sin `INCLUDE`) o se quiere dejar abierta la puerta a filtros por `cantidad`.
+* **Riesgos:** mismos que P1, más: índice ligeramente más costoso de mantener/ordenar que P1 porque `cantidad` participa en las comparaciones del árbol. No aporta nada para el `ORDER BY unidades DESC` porque ese orden es sobre `SUM()`, no sobre columnas base — el spec ya lo dice: no indexable. Elegir P1 o P2, no los dos.
+
+### P3 - Adicional fuera del spec (útil para la misma tabla)
+
+```sql
+CREATE INDEX idx_detalle_pedido_top_facturacion
+ON detalle_pedido (producto_id) INCLUDE (cantidad, subtotal)
+WHERE (eliminado = FALSE);
+```
+
+* **Tipo:** B-tree parcial covering.
+* **Columnas:** key = `(producto_id)`, payload = `(cantidad, subtotal)`.
+* **¿Parcial?** Sí, mismo motivo.
+* **¿Usa INCLUDE?** Sí. Anticipa la evolución natural del mismo reporte: “Top por unidades” -> “Top por facturación” (`SUM(subtotal)` por `producto_id`). Resuelve ese futuro reporte con `Index Only Scan` sin crear otro índice después.
+* **Riesgos:** es más ancho que P1, más espacio y más costo de mantenimiento en `UPDATE` de `subtotal`. Si se crea, sustituye a P1, no se suma a P1. Si nunca se pide el reporte por facturación, es espacio desperdiciado. Efecto colateral positivo: tanto P1/P2 como P3 resuelven de paso el FK sin índice propio `detalle_pedido(producto_id) -> producto(id)` — hoy el único índice con `producto_id` es `UNIQUE(pedido_id, producto_id)`, que no sirve para búsquedas por `producto_id` solo ni para checks de `DELETE/UPDATE` en `producto`.
