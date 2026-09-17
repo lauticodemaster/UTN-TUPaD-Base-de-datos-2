@@ -137,10 +137,17 @@ Execution Time: 222.080 ms
 | | Antes | Después | |
 |---|---:|---:|---|
 | Plan sobre `detalle_pedido` | Seq Scan | **Index Only Scan** | criterio 1 cumplido |
-| `Heap Fetches` | — | 119 sobre 800.008 (0,01 %) | criterio 2 cumplido |
+| `Heap Fetches` | — | 119 sobre 800.008 (0,01 %) | criterio 2, con matiz — ver abajo |
 | Buffers sobre `detalle_pedido` | 9.091 (736 hit + 8.355 read) | **728** | **12,5× menos** |
 | Buffers totales | 9.953 | 1.590 | |
 | Tiempo (mediana de 3) | **258,9 ms** | **222,9 ms** | −13,9 % |
+
+**Sobre el criterio "`Heap Fetches: 0`".** La spec lo pedía en 0 y quedó en **119**. Se
+corrió `VACUUM (ANALYZE) detalle_pedido` tres veces y el número no baja: hay un puñado de
+páginas de la carga masiva que no quedan marcadas como *all-visible* en el visibility map, y
+el `Index Only Scan` tiene que ir al heap por esas. Son 119 visitas sobre 800.008 filas
+(0,01 %) y no cambian el resultado —el índice es cubriente en la práctica— pero corresponde
+decir que el criterio se cumple al 99,99 %, no al 100 %, en vez de redondearlo a cero.
 
 **Lectura honesta del número.** La mejora es de 14 %, no de un orden de magnitud, y el spec
 pedía una mejora "reproducible", no espectacular. El motivo está a la vista en el plan: el
