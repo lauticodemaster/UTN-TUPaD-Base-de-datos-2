@@ -73,6 +73,23 @@ CREATE INDEX idx_pedido_ranking_usuarios
 
 
 -- ----------------------------------------------------------------------------
+-- 3) Pedidos cuyo total supera el promedio  (queries.sql, analitica D)
+--    spec: specs/spec_indice_pedidos_sobre_promedio.md
+--
+-- El filtro devuelve el 50% de la tabla: no hay selectividad que aprovechar,
+-- y se deja dicho a proposito. Lo que compra este indice es el ORDER BY:
+-- las filas salen ya ordenadas por total y desaparece el "Sort Method:
+-- external merge  Disk: 2640kB" del plan original. De paso, el AVG del
+-- InitPlan tambien se resuelve por Index Only Scan.
+--
+-- El DESC documenta la intencion; PostgreSQL puede recorrer un B-tree hacia
+-- atras, asi que ASC habria servido igual.
+CREATE INDEX idx_pedido_sobre_promedio
+    ON pedido (total DESC) INCLUDE (id)
+    WHERE eliminado = FALSE;
+
+
+-- ----------------------------------------------------------------------------
 -- Precondicion de los tres: sin visibility map poblado no hay Index Only Scan
 -- que evite el heap, y el planificador vuelve al Seq Scan.
 VACUUM (ANALYZE) detalle_pedido;
