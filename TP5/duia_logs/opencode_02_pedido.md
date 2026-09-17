@@ -1,0 +1,67 @@
+Propuestas `CREATE INDEX` para `pedido` (`TP1/schema.sql`):
+
+### 1. Ranking de usuarios por gasto — `spec_indice_ranking_usuarios.md`
+
+```sql
+CREATE INDEX idx_pedido_ranking_usuarios
+  ON pedido (usuario_id) INCLUDE (total)
+  WHERE (eliminado = FALSE);
+```
+
+* **Tipo:** B-tree (default). Es igualdad + agrupamiento ordenado, no rango ni texto ni vector.
+* **Columnas:** key `(usuario_id)`. Sirve al `JOIN pedido.usuario_id = usuario.id` y entrega filas ya ordenadas por `usuario_id`, lo que permite `GroupAggregate` en lugar del `HashAggregate` con `Batches: 5` que derrama a disco. Es el punto principal del spec.
+* **Parcial:** sí, `WHERE eliminado = FALSE`. La consulta siempre filtra así, la frecuencia es media y no hay selectividad que aprovechar; el predicado parcial achica el índice y lo alinea al `WHERE`. No va como columna key porque nunca se agrupa/filtra por rango sobre ella, solo se excluye.
+* **INCLUDE:** sí, `INCLUDE (total)`. `total` solo se agrega con `SUM()`, no filtra ni agrupa ni ordena. En key agrandaría comparaciones sin beneficio; como `INCLUDE` igual permite `Index Only Scan` con `Heap Fetches: 0` (tras `VACUUM`) sin pagar orden.
+* **Por qué no es redundante con `idx_pedido_usuario_id ON pedido(usuario_id)`:** ese es total, sin `WHERE` y sin covering. El nuevo es parcial + covering: resuelve `JOIN + GROUP + SUM` sin heap. Migración ideal: reemplazarlo, no convivir.
+* **Riesgo:** duplicado si se conserva el viejo (doble costo en `INSERT`/`UPDATE` de `usuario_id/total/eliminado` + espacio para 200.003 filas); parcial inútil para consultas que pidan `eliminado = TRUE` o sin filtro; exige `VACUUM`/`ANALYZE` para que el visibility map dé `Heap Fetches: 0`, si no el planificador puede volver al `Seq Scan`.
+
+### 2. Pedidos sobre el promedio — `spec_indice_pedidos_sobre_promedio.md`
+
+```sql
+CREATE INDEX idx_pedido_sobre_promedio
+  ON pedido (total DESC) INCLUDE (id)
+  WHERE (eliminado = FALSE);
+```
+
+* **Tipo:** B-tree. Es rango (`total > :promedio`) + `ORDER BY total DESC`.
+* **Columnas:** key `(total)`. Devuelve 99.747 filas (~50%, no selectivo a propósito): lo que se compra no es selectividad sino salir ya ordenado y eliminar el nodo `Sort` / `external merge Disk: 2640kB`. Declarar `DESC` documenta la intención; en Postgres el scan backward hace que `ASC` funcione igual.
+* **Parcial:** sí, `WHERE eliminado = FALSE`. Outer query y `InitPlan` del `AVG(total)` filtran exactamente eso. Indexa solo vigentes, reduce tamaño ~a la mitad útil.
+* **INCLUDE:** sí, `INCLUDE (id)`. `id` solo se proyecta (`SELECT id, total`), no filtra ni ordena; en key `(total, id)` rompería la key mínima y agrandaría el orden sin necesidad. Con `INCLUDE` el outer hace `Index Only Scan` y el `AVG(total)` del `InitPlan` también (solo necesita `total`).
+* **Riesgo:** índice de baja selectividad: el optimizador puede seguir prefiriendo `Seq Scan + Sort` si el costo lo estima menor, sobre todo sin `ANALYZE`; tabla hot en `total` (`fn_recalcular_total()` lo actualiza en cada `INSERT` en `detalle_pedido`) → alto mantenimiento, bloat y escrituras más caras; no acelera el predicado `> :promedio` (umbral variable), solo el `ORDER BY` y el `AVG`.
+
+> Los dos índices coexisten: uno ordena por `usuario_id`, otro por `total`. No son redundantes entre sí.
+
+### 3. Otros índices para el resto de `TP1/queries.sql` + `objects.sql`
+
+Lo existente (`PK(id)`, `idx_pedido_usuario_id`) ya cubre `UPDATE pedido WHERE id = ... AND eliminado = FALSE`, el `JOIN pedido.id = detalle_pedido.pedido_id` de la consulta B, y la búsqueda puntual `WHERE usuario_id = 1`.
+
+Lo que falta es historial/operativa por usuario y listados recientes (`v_pedidos_resumen`, consulta B por mes). Por prioridad:
+
+**3a. Historial de un usuario (el más rentable, no existe):**
+
+```sql
+CREATE INDEX idx_pedido_usuario_fecha
+  ON pedido (usuario_id, fecha DESC)
+  WHERE (eliminado = FALSE);
+```
+
+* **Tipo:** B-tree compuesto.
+* **Columnas:** `(usuario_id, fecha DESC)`: igualdad en `usuario_id` (muy selectivo: pocos pedidos por usuario sobre 200k) + orden/listado por `fecha` sin `Sort`.
+* **Parcial:** sí, `WHERE eliminado = FALSE`, mismo patrón de baja lógica de todo el sistema.
+* **INCLUDE:** no. Ambas son key (filtran/ordenan). Solo agregar `INCLUDE (estado, total)` si se quiere covering para `v_pedidos_resumen`.
+* **Riesgo:** bajo-medio. Cubre parcialmente lo que haría 1 si se crea 1 (solapa en `usuario_id`), entonces crear 1 + 3a duplica; si se crea 3a, preferir 1 como `(usuario_id) INCLUDE(total)` y aceptar solape, o fusionar a `(usuario_id, fecha DESC) INCLUDE (total) WHERE eliminado = FALSE` si se quiere un solo índice.
+
+**3b. Tablero por estado (operativa `PENDIENTE/CONFIRMADO/...`):**
+
+```sql
+CREATE INDEX idx_pedido_estado_fecha
+  ON pedido (estado, fecha DESC)
+  WHERE (eliminado = FALSE);
+```
+
+* **Tipo:** B-tree compuesto, cardinalidad baja en `estado` (4 valores) + orden temporal.
+* **Parcial:** sí, por el mismo motivo.
+* **INCLUDE:** no de base; `INCLUDE (total)` solo si el tablero suma totales.
+* **Riesgo:** `estado` solo es poco selectivo; sin `fecha` o sin `INCLUDE` casi no se usaría. Costo de escritura en cada cambio de `estado` (`HU-PED-03`).
+
+No crear: índice solo en `eliminado`, solo en `forma_pago`, o solo en `fecha` global — baja selectividad y/o ya resuelto por `PK(id)` para `ORDER BY id`.
