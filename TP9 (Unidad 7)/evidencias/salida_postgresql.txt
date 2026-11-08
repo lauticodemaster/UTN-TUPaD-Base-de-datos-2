@@ -1,0 +1,97 @@
+SET search_path TO foodstore;
+SET
+SELECT p.id, p.estado, p.total, count(d.id) AS lineas
+FROM   pedido p
+JOIN   detalle_pedido d ON d.pedido_id = p.id AND d.eliminado = FALSE
+WHERE  p.eliminado = FALSE
+GROUP  BY p.id, p.estado, p.total
+ORDER  BY p.id;
+ id |   estado   |  total  | lineas 
+----+------------+---------+--------
+  1 | CONFIRMADO | 3950.00 |      2
+  2 | PENDIENTE  |  980.00 |      3
+  3 | TERMINADO  | 2500.00 |      3
+  4 | CONFIRMADO | 3060.00 |      3
+  5 | TERMINADO  | 1770.00 |      3
+  6 | CANCELADO  | 1200.00 |      2
+  7 | TERMINADO  | 3750.00 |      3
+(7 rows)
+
+SELECT p.id, p.fecha, p.estado, p.total
+FROM   pedido p
+WHERE  p.estado = 'TERMINADO'
+  AND  p.eliminado = FALSE
+ORDER  BY p.id;
+ id |   fecha    |  estado   |  total  
+----+------------+-----------+---------
+  3 | 2026-09-01 | TERMINADO | 2500.00
+  5 | 2026-10-21 | TERMINADO | 1770.00
+  7 | 2026-11-02 | TERMINADO | 3750.00
+(3 rows)
+
+SELECT count(*) AS cantidad_terminados
+FROM   pedido
+WHERE  estado = 'TERMINADO' AND eliminado = FALSE;
+ cantidad_terminados 
+---------------------
+                   3
+(1 row)
+
+SELECT p.id, p.estado, d.id AS detalle_id, d.cantidad, d.precio_unitario, d.subtotal
+FROM   pedido p
+JOIN   detalle_pedido d ON d.pedido_id = p.id
+WHERE  d.producto_id = 7
+  AND  d.eliminado = FALSE
+  AND  p.eliminado = FALSE
+ORDER  BY p.id;
+ id |   estado   | detalle_id | cantidad | precio_unitario | subtotal 
+----+------------+------------+----------+-----------------+----------
+  1 | CONFIRMADO |          2 |        1 |          350.00 |   350.00
+  4 | CONFIRMADO |         10 |        2 |          350.00 |   700.00
+  5 | TERMINADO  |         14 |        1 |          350.00 |   350.00
+  7 | TERMINADO  |         18 |        1 |          350.00 |   350.00
+(4 rows)
+
+SELECT count(*) AS cantidad_con_producto_7
+FROM   pedido p
+WHERE  p.eliminado = FALSE
+  AND  EXISTS (SELECT 1
+               FROM   detalle_pedido d
+               WHERE  d.pedido_id = p.id
+                 AND  d.producto_id = 7
+                 AND  d.eliminado = FALSE);
+ cantidad_con_producto_7 
+-------------------------
+                       4
+(1 row)
+
+SELECT 'b) estado TERMINADO' AS consulta,
+       count(*) AS cantidad,
+       string_agg(id::text, ', ' ORDER BY id) AS ids
+FROM   pedido
+WHERE  estado = 'TERMINADO' AND eliminado = FALSE
+UNION ALL
+SELECT 'c) producto 7',
+       count(*),
+       string_agg(p.id::text, ', ' ORDER BY p.id)
+FROM   pedido p
+WHERE  p.eliminado = FALSE
+  AND  EXISTS (SELECT 1 FROM detalle_pedido d
+               WHERE d.pedido_id = p.id AND d.producto_id = 7 AND d.eliminado = FALSE);
+      consulta       | cantidad |    ids     
+---------------------+----------+------------
+ b) estado TERMINADO |        3 | 3, 5, 7
+ c) producto 7       |        4 | 1, 4, 5, 7
+(2 rows)
+
+SELECT id, estado, total
+FROM   pedido
+WHERE  total > 2500 AND eliminado = FALSE
+ORDER  BY id;
+ id |   estado   |  total  
+----+------------+---------
+  1 | CONFIRMADO | 3950.00
+  4 | CONFIRMADO | 3060.00
+  7 | TERMINADO  | 3750.00
+(3 rows)
+

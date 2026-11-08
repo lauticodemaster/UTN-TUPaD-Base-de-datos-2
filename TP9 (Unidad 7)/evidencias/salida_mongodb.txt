@@ -1,0 +1,153 @@
+Documentos insertados: 7
+
+== Verificación: documentos con importes incoherentes (esperado: ninguno) ==
+[]
+
+== Verificación: el validador rechaza una línea con cantidad 0 ==
+Rechazado: Document failed validation
+
+== Verificación: el validador rechaza un total que no coincide con sus líneas ==
+Rechazado: Document failed validation
+
+== a) Todos los pedidos (id y estado) ==
+[
+  {
+    _id: 1,
+    estado: 'CONFIRMADO'
+  },
+  {
+    _id: 2,
+    estado: 'PENDIENTE'
+  },
+  {
+    _id: 3,
+    estado: 'TERMINADO'
+  },
+  {
+    _id: 4,
+    estado: 'CONFIRMADO'
+  },
+  {
+    _id: 5,
+    estado: 'TERMINADO'
+  },
+  {
+    _id: 6,
+    estado: 'CANCELADO'
+  },
+  {
+    _id: 7,
+    estado: 'TERMINADO'
+  }
+]
+
+== b) Pedidos con estado TERMINADO ==
+[
+  {
+    _id: 3,
+    fecha: ISODate('2026-09-01T00:00:00.000Z'),
+    estado: 'TERMINADO',
+    total: Decimal128('2500.00')
+  },
+  {
+    _id: 5,
+    fecha: ISODate('2026-10-21T00:00:00.000Z'),
+    estado: 'TERMINADO',
+    total: Decimal128('1770.00')
+  },
+  {
+    _id: 7,
+    fecha: ISODate('2026-11-02T00:00:00.000Z'),
+    estado: 'TERMINADO',
+    total: Decimal128('3750.00')
+  }
+]
+Cantidad: 3
+
+== c) Pedidos que contienen el producto 7 (Gaseosa 2L) ==
+[
+  {
+    _id: 1,
+    estado: 'CONFIRMADO',
+    lineas: [
+      {
+        detalle_id: 2,
+        producto_id: 7,
+        nombre: 'Gaseosa 2L',
+        categoria: 'Bebidas',
+        cantidad: 1,
+        precio_unitario: Decimal128('350.00'),
+        subtotal: Decimal128('350.00')
+      }
+    ]
+  },
+  {
+    _id: 4,
+    estado: 'CONFIRMADO',
+    lineas: [
+      {
+        detalle_id: 10,
+        producto_id: 7,
+        nombre: 'Gaseosa 2L',
+        categoria: 'Bebidas',
+        cantidad: 2,
+        precio_unitario: Decimal128('350.00'),
+        subtotal: Decimal128('700.00')
+      }
+    ]
+  },
+  {
+    _id: 5,
+    estado: 'TERMINADO',
+    lineas: [
+      {
+        detalle_id: 14,
+        producto_id: 7,
+        nombre: 'Gaseosa 2L',
+        categoria: 'Bebidas',
+        cantidad: 1,
+        precio_unitario: Decimal128('350.00'),
+        subtotal: Decimal128('350.00')
+      }
+    ]
+  },
+  {
+    _id: 7,
+    estado: 'TERMINADO',
+    lineas: [
+      {
+        detalle_id: 18,
+        producto_id: 7,
+        nombre: 'Gaseosa 2L',
+        categoria: 'Bebidas',
+        cantidad: 1,
+        precio_unitario: Decimal128('350.00'),
+        subtotal: Decimal128('350.00')
+      }
+    ]
+  }
+]
+Cantidad: 4
+
+== d) Pedidos con total > 2500 ==
+[
+  {
+    _id: 1,
+    estado: 'CONFIRMADO',
+    total: Decimal128('3950.00')
+  },
+  {
+    _id: 4,
+    estado: 'CONFIRMADO',
+    total: Decimal128('3060.00')
+  },
+  {
+    _id: 7,
+    estado: 'TERMINADO',
+    total: Decimal128('3750.00')
+  }
+]
+Promedio de totales: 2458.571428571428571428571428571429
+
+== Plan de la consulta c) ==
+Etapa: IXSCAN | índice: lineas.producto_id_1 | docs examinados: 4 | devueltos: 4

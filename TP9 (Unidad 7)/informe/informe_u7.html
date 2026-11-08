@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Informe TP Unidad 7</title>
+<style>
+  @page { size: A4; margin: 16mm 16mm 16mm 16mm; }
+  body { font-family: "Segoe UI", Arial, sans-serif; font-size: 9.6pt; line-height: 1.38; color: #1d2733; background: #fff; margin: 0; }
+  h1 { font-size: 15pt; margin: 0 0 2px; color: #17324d; }
+  h2 { font-size: 11.5pt; color: #17324d; border-bottom: 1.5px solid #17324d; padding-bottom: 2px; margin: 14px 0 6px; }
+  h3 { font-size: 10pt; margin: 9px 0 3px; color: #24527a; }
+  p { margin: 3px 0 6px; }
+  .sub { color: #4a5b6c; margin-bottom: 8px; }
+  table { border-collapse: collapse; width: 100%; margin: 4px 0 8px; font-size: 8.9pt; }
+  th, td { border: 1px solid #c3ccd6; padding: 3px 6px; text-align: left; vertical-align: top; }
+  th { background: #17324d; color: #fff; font-weight: 600; }
+  tr:nth-child(even) td { background: #f3f6f9; }
+  pre, code { font-family: Consolas, "Courier New", monospace; font-size: 8.3pt; }
+  pre { background: #f3f6f9; border: 1px solid #d5dde5; padding: 5px 8px; margin: 4px 0 7px; white-space: pre-wrap; }
+  .two { display: flex; gap: 10px; } .two > div { flex: 1; min-width: 0; }
+  .pend { border: 1.5px dashed #b0651a; background: #fff6ec; padding: 5px 8px; margin: 5px 0; }
+  .ok { color: #1f7a3a; font-weight: 600; }
+  ul { margin: 3px 0 6px; padding-left: 18px; } li { margin: 1px 0; }
+  .small { font-size: 8.5pt; color: #4a5b6c; }
+  .brk { page-break-before: always; }
+</style>
+</head>
+<body>
+
+<h1>Trabajo práctico · Unidad 7 — NoSQL y nuevas formas de almacenamiento</h1>
+<div class="sub">Bases de Datos II · TUPaD UTN · Docente: Carlos Yácomo · <b>Grupo H (Saferazi)</b>: Lautaro Fernandez, Daniela Díaz, Jesús Ramírez, Danilo Serrano, Elio Marí<br>
+Repositorio: https://github.com/lauticodemaster/UTN-TUPaD-Base-de-datos-2 (carpeta <code>TP9 (Unidad 7)</code>) · Entorno: PostgreSQL 17 y MongoDB 8.0 (contenedores Docker)</div>
+
+<h2>1. Modelo documental (consigna 1)</h2>
+<p><b>Subconjunto relacional.</b> En el Food Store del TP1 intervienen:</p>
+<table>
+<tr><th>Tabla</th><th>Clave primaria</th><th>Claves foráneas y restricciones relevantes</th></tr>
+<tr><td><code>pedido</code></td><td><code>id</code></td><td><code>usuario_id → usuario.id</code>; <code>estado</code> ENUM (PENDIENTE, CONFIRMADO, TERMINADO, CANCELADO); <code>total NUMERIC(10,2) ≥ 0</code>; <code>forma_pago</code> ENUM; <code>eliminado</code></td></tr>
+<tr><td><code>detalle_pedido</code></td><td><code>id</code></td><td><code>pedido_id → pedido.id</code> (ON DELETE RESTRICT); <code>producto_id → producto.id</code>; <code>UNIQUE(pedido_id, producto_id)</code>; <code>cantidad &gt; 0</code>; <code>precio_unitario</code> congelado por <code>trg_subtotal</code></td></tr>
+<tr><td><code>usuario</code></td><td><code>id</code></td><td>Datos del cliente: solo se copian nombre y apellido</td></tr>
+<tr><td><code>producto</code> / <code>categoria</code></td><td><code>id</code></td><td><code>producto.categoria_id → categoria.id</code>: se copian nombre de producto y de categoría en cada línea</td></tr>
+</table>
+<p><b>Colección propuesta:</b> <code>foodstore.pedidos</code>, un documento por pedido.</p>
+<div class="two"><div>
+<pre>{
+  _id: 4,              // = pedido.id
+  fecha: ISODate("2026-10-14"),
+  estado: "CONFIRMADO",
+  forma_pago: "TARJETA",
+  total: Decimal128("3060.00"),
+  cliente: {           // objeto embebido
+    usuario_id: 2,     // = usuario.id
+    nombre: "Juliana", apellido: "Paredes" },
+  lineas: [            // arreglo embebido
+    { detalle_id: 9,   // = detalle_pedido.id
+      producto_id: 3,  // = producto.id
+      nombre: "Jamón y Queso", categoria: "Pizzas",
+      cantidad: 1,
+      precio_unitario: Decimal128("2000.00"),
+      subtotal: Decimal128("2000.00") }, ... ],
+  origen: "prueba TP Unidad 7"
+}</pre>
+</div><div>
+<ul>
+<li><b>Identificadores conservados:</b> <code>_id</code> = <code>pedido.id</code>, <code>cliente.usuario_id</code>, <code>lineas.detalle_id</code> y <code>lineas.producto_id</code>. Así se puede volver a cada fila de PostgreSQL y comparar resultados por id.</li>
+<li><b>Embebido:</b> <code>cliente</code> (objeto) y <code>lineas</code> (arreglo). Las líneas no existen sin su pedido y se leen siempre con él.</li>
+<li><b>Snapshot histórico:</b> el nombre del producto, la categoría y el <code>precio_unitario</code> se copian tal como estaban al comprar. Si después cambia el catálogo, el pedido no se modifica.</li>
+<li><b>Importes en <code>Decimal128</code></b>, equivalente a <code>NUMERIC(10,2)</code>, para no perder centavos con <code>double</code>.</li>
+<li><b>Sin datos sensibles:</b> no se migran mail, celular ni contraseña.</li>
+<li><b>Índices:</b> <code>{estado: 1}</code> y el multikey <code>{"lineas.producto_id": 1}</code>.</li>
+</ul>
+</div></div>
+
+<h2>2. Migración (consigna 2)</h2>
+<p><b>Procedencia de los datos.</b> Pedidos 1 a 3: base de desarrollo del equipo (<code>TP1/data.sql</code>, con fechas y totales del backup). Pedidos 4 a 7: <b>datos de prueba</b> cargados con <code>sql/datos_prueba_postgresql.sql</code> mediante el procedimiento <code>sp_crear_pedido</code> del propio Food Store. Ese procedimiento valida el stock y los triggers calculan subtotales y totales, así que ningún importe se escribió a mano. Total: <b>7 pedidos y 19 líneas</b>.</p>
+<p><b>Proceso.</b> <code>sql/exportar_pedidos_mongodb.sql</code> genera desde PostgreSQL el literal de cada documento (con <code>format()</code> y <code>string_agg</code>). Ese texto se pegó en el <code>insertMany()</code> de <code>consultas_mongodb.js</code>, que antes crea la colección con un validador (<code>$jsonSchema</code> + <code>$expr</code>).</p>
+<pre>$ mongosh --quiet --file consultas_mongodb.js
+Documentos insertados: 7
+== Verificación: documentos con importes incoherentes (esperado: ninguno) ==
+[]
+== Verificación: el validador rechaza una línea con cantidad 0 ==
+Rechazado: Document failed validation
+== Verificación: el validador rechaza un total que no coincide con sus líneas ==
+Rechazado: Document failed validation</pre>
+
+<h2>3. Reglas de integridad y criterio de embebido (consigna 3)</h2>
+<ul>
+<li><b>Regla 1 · Coherencia de importes:</b> <code>subtotal = cantidad × precio_unitario</code> en cada línea y <code>total = Σ subtotales</code> del pedido. En PostgreSQL la garantizan <code>trg_subtotal</code> y <code>trg_total_*</code>. En MongoDB se migran los valores calculados en origen, en <code>Decimal128</code>, y la regla se hace cumplir con un validador <code>$expr</code> (<code>$sum</code>, <code>$multiply</code>, <code>$allElementsTrue</code>). Los 7 documentos lo cumplieron, una agregación de control lo confirmó (resultado: <code>[]</code>) y se rechazó un documento de prueba con total $5000 y líneas que sumaban $3600.</li>
+<li><b>Regla 2 · Dominios y valores válidos:</b> el <code>estado</code> y la <code>forma_pago</code> solo admiten los valores de los ENUM, <code>cantidad</code> es un entero ≥ 1, los importes son ≥ 0 y cada pedido tiene al menos una línea. Esto replica los <code>CHECK</code>/ENUM de PostgreSQL con el validador <code>$jsonSchema</code>, que rechazó un documento con <code>cantidad: 0</code>. Además se conservan los ids de origen y se migran solo filas con <code>eliminado = FALSE</code>.</li>
+</ul>
+<p><b>Qué se embebe y qué no.</b> Se embeben las líneas y un resumen del cliente porque el acceso frecuente es «pedido completo» y esos datos tienen relación <i>contiene</i> con el pedido: se leen y escriben juntos, y su cantidad está acotada (1 a 4 líneas). Por eso una sola lectura reemplaza los <code>JOIN</code> de <code>pedido</code>, <code>detalle_pedido</code>, <code>producto</code> y <code>usuario</code>. <b>No</b> se embeben el catálogo completo (precio vigente, stock, disponibilidad) ni la cuenta del usuario: cambian de forma independiente, se comparten entre muchos pedidos y duplicarlos obligaría a actualizar todos los documentos. Del producto solo se guarda el snapshot de la venta.</p>
+
+<h2>4. Consultas en MongoDB (consigna 4)</h2>
+<table>
+<tr><th style="width:24%">Consulta</th><th style="width:46%">Instrucción</th><th>Resultado (ids)</th></tr>
+<tr><td>a) Todos los pedidos (id y estado)</td><td><code>db.pedidos.find({}, {_id: 1, estado: 1}).sort({_id: 1})</code></td><td>1 CONFIRMADO · 2 PENDIENTE · 3 TERMINADO · 4 CONFIRMADO · 5 TERMINADO · 6 CANCELADO · 7 TERMINADO</td></tr>
+<tr><td>b) Estado TERMINADO</td><td><code>db.pedidos.find({estado: "TERMINADO"}, {_id:1, estado:1, fecha:1, total:1})</code></td><td>3, 5, 7 (3 pedidos)</td></tr>
+<tr><td>c) Contiene el producto 7 (Gaseosa 2L)</td><td><code>db.pedidos.find({"lineas.producto_id": 7}, {_id:1, estado:1, "lineas.$":1})</code></td><td>1, 4, 5, 7 (4 pedidos)</td></tr>
+<tr><td>d) Total &gt; $2500</td><td><code>db.pedidos.find({total: {$gt: Decimal128("2500")}}, {_id:1, estado:1, total:1})</code></td><td>1 ($3950), 4 ($3060), 7 ($3750)</td></tr>
+</table>
+<p><b>Por qué la consulta c) usa el id.</b> Filtra por <code>producto_id</code> y no por nombre, porque el id es estable y se puede comparar con PostgreSQL. La proyección <code>"lineas.$"</code> devuelve solo la línea que coincide. Según <code>explain("executionStats")</code>, usa <code>IXSCAN</code> sobre <code>lineas.producto_id_1</code> y examina 4 documentos para devolver 4.</p>
+<p><b>Umbral de la consulta d).</b> El promedio de los 7 totales es 17210 / 7 = <b>$2458,57</b> (MongoDB devolvió <code>2458.5714…</code> con <code>$avg</code>), y se redondeó a $2500 para obtener los pedidos por encima de la media. Además, el pedido 3 vale exactamente $2500 y quedó excluido. Eso confirma que <code>$gt</code> es estricto y que la comparación en <code>Decimal128</code> es exacta.</p>
+<pre>== b) Pedidos con estado TERMINADO ==
+[ { _id: 3, fecha: ISODate('2026-09-01T00:00:00.000Z'), estado: 'TERMINADO', total: Decimal128('2500.00') },
+  { _id: 5, fecha: ISODate('2026-10-21T00:00:00.000Z'), estado: 'TERMINADO', total: Decimal128('1770.00') },
+  { _id: 7, fecha: ISODate('2026-11-02T00:00:00.000Z'), estado: 'TERMINADO', total: Decimal128('3750.00') } ]
+Cantidad: 3
+== c) Pedidos que contienen el producto 7 (Gaseosa 2L) ==   (extracto)
+[ { _id: 1, estado: 'CONFIRMADO', lineas: [ { detalle_id: 2, producto_id: 7, nombre: 'Gaseosa 2L', cantidad: 1, ... } ] },
+  { _id: 4, estado: 'CONFIRMADO', lineas: [ { detalle_id: 10, producto_id: 7, cantidad: 2, subtotal: Decimal128('700.00') } ] }, ...
+Cantidad: 4
+Etapa: IXSCAN | índice: lineas.producto_id_1 | docs examinados: 4 | devueltos: 4</pre>
+<p class="small">La salida completa está en <code>evidencias/salida_mongodb.txt</code>.</p>
+
+<h2>5. Verificación con PostgreSQL (consigna 5)</h2>
+<div class="two"><div>
+<pre>-- b) Estado TERMINADO
+SELECT p.id, p.fecha, p.estado, p.total
+FROM   pedido p
+WHERE  p.estado = 'TERMINADO'
+  AND  p.eliminado = FALSE
+ORDER  BY p.id;</pre></div><div>
+<pre>-- c) Contiene el producto 7
+SELECT p.id FROM pedido p
+WHERE  p.eliminado = FALSE
+  AND  EXISTS (SELECT 1 FROM detalle_pedido d
+       WHERE d.pedido_id = p.id
+         AND d.producto_id = 7
+         AND d.eliminado = FALSE);</pre></div></div>
+<table>
+<tr><th>Consulta</th><th>Cantidad en PostgreSQL</th><th>Cantidad en MongoDB</th><th>IDs</th><th>Coinciden los IDs</th></tr>
+<tr><td>Estado seleccionado (TERMINADO)</td><td>3</td><td>3</td><td>3, 5, 7</td><td class="ok">Sí</td></tr>
+<tr><td>Producto seleccionado (id 7, Gaseosa 2L)</td><td>4</td><td>4</td><td>1, 4, 5, 7</td><td class="ok">Sí</td></tr>
+</table>
+<p>La consulta d) también coincide (1, 4, 7), igual que la cantidad de líneas por pedido (2, 3, 3, 3, 3, 2, 3) y los 7 totales. Salida completa en <code>evidencias/salida_postgresql.txt</code>.</p>
+<p><b>Diferencias detectadas y correcciones:</b></p>
+<ul>
+<li><b>Borrado lógico.</b> En PostgreSQL las filas «borradas» siguen en la tabla con <code>eliminado = TRUE</code>, y la migración solo lleva las vigentes. Si las consultas SQL no filtran <code>eliminado = FALSE</code> en <i>ambas</i> tablas, los conjuntos pueden diferir. <b>Corrección:</b> se agregó el filtro en todas las consultas. Además, en la consulta c) se usa <code>EXISTS</code> en lugar de <code>JOIN</code>, porque <code>find()</code> devuelve documentos y no líneas.</li>
+<li><b>Desincronización después de migrar</b> (<code>sql/experimento_divergencia.sql</code>, ejecutado con <code>ROLLBACK</code>). Se dio de baja la línea de Gaseosa del pedido 5. En PostgreSQL, el trigger recalculó el total (1770 → <b>1420</b>) y la consulta c) pasó a devolver <b>3</b> pedidos (1, 4, 7). MongoDB siguió devolviendo <b>4</b> (1, 4, 5, 7) con total 1770. La copia documental es una foto: si convive con PostgreSQL, necesita un mecanismo de sincronización (por ejemplo, <i>change data capture</i>) o volver a migrar.</li>
+<li><b>Tipos numéricos.</b> Se verificó en el laboratorio que <code>mongosh</code> guarda los enteros literales como <code>int</code>, por lo que el validador puede exigir <code>bsonType: "int"</code> en ids y cantidades. Los importes se fuerzan a <code>Decimal128</code>: un literal como <code>3950.00</code> se guardaría como <code>double</code>.</li>
+<li><b>Fechas.</b> <code>DATE</code> de PostgreSQL pasa a <code>ISODate</code> a las 00:00 UTC. Si un cliente lo muestra en hora argentina (UTC−3), lo ve como el día anterior a las 21:00. Hay que filtrar por rango UTC o guardar la fecha local como texto ISO.</li>
+</ul>
+
+<h2>6. Evaluación con IA (consigna 6)</h2>
+<p>El prompt usado está en <code>ia/prompt_consigna6.md</code>. Menciona el modelo relacional actual (tablas, FK, triggers y procedimiento transaccional), el acceso frecuente a pedidos completos y la necesidad de mantener coherentes las cantidades, los precios históricos y el stock.</p>
+<p><b>Herramienta:</b> Claude (modelo Claude Opus 5.5, Anthropic), consultado desde Claude Code el 08/11/2026. La respuesta completa está en <code>ia/respuesta_ia.md</code>. <b>Resumen:</b> la IA propone un documento por pedido con las líneas embebidas y el snapshot de precios. Destaca que leer el pedido completo es una sola operación, pero que los reportes que cruzan entidades son más simples en SQL. Señala que la escritura de un documento es atómica y que descontar stock en otra colección exige transacciones multidocumento. Recomienda <code>Decimal128</code> para importes y concluye que conviene mantener PostgreSQL como fuente de verdad, con MongoDB solo como almacén de lectura sincronizado.</p>
+<p class="small"><b>Advertencia metodológica:</b> la misma herramienta armó el laboratorio, así que su respuesta no es independiente de él. Por eso las dos afirmaciones se contrastan con la documentación oficial y con pruebas ejecutadas (<code>laboratorio_ia.js</code>), no con la opinión de la IA.</p>
+
+<h2 class="brk">7. Contraste de afirmaciones y conclusión (consigna 7)</h2>
+<table>
+<tr><th style="width:27%">Afirmación de la IA</th><th style="width:55%">Contraste (documentación oficial y laboratorio)</th><th>Veredicto</th></tr>
+<tr><td><b>A1.</b> «Una operación de escritura sobre un único documento es atómica, incluso si modifica documentos embebidos». Para descontar stock en otra colección hacen falta transacciones multidocumento (replica set).</td>
+<td><b>Documentación:</b> el manual («Atomicity and Transactions») indica que las escrituras son atómicas a nivel de documento único y que, para atomicidad entre varios documentos, MongoDB ofrece transacciones en replica sets y clústeres fragmentados.<br>
+<b>Laboratorio:</b> un <code>updateOne</code> cambió una línea embebida y el total en una sola operación. Un update que cambiaba la línea sin el total se rechazó entero, sin cambios parciales. Una transacción pedido + stock falló en el contenedor standalone («does not support retryable writes»), sin escribir nada. En un replica set de un nodo se confirmó: se creó el pedido 8 y el stock bajó de 30 a 28.</td>
+<td><b>Confirmada, con matiz:</b> que la escritura sea atómica no garantiza que el documento quede coherente. El update incoherente lo rechazó el validador <code>$expr</code>, no la atomicidad.</td></tr>
+<tr><td><b>A2.</b> Los importes no deben guardarse como <code>double</code>, porque no representa exactamente fracciones decimales. <code>Decimal128</code> es el equivalente de <code>NUMERIC</code>.</td>
+<td><b>Documentación:</b> «Model Monetary Data» afirma que el punto flotante binario (<code>double</code>) no puede representar fracciones decimales exactas, y que <code>decimal128</code> no aproxima valores decimales y da la precisión exacta que requieren los datos financieros.<br>
+<b>Laboratorio</b> (aritmética en el servidor, <code>$add</code>/<code>$sum</code>): con <code>double</code>, 0,10 + 0,20 = <code>0.30000000000000004</code> (≠ 0,30) y 3 × 1800,10 = <code>5400.299999999999</code>. Con <code>Decimal128</code> se obtiene <code>0.30</code> y <code>5400.30</code>, y la suma de los 7 totales migrados da exactamente <code>17210.00</code>, igual que en PostgreSQL.</td>
+<td><b>Confirmada.</b> Justifica haber migrado los importes como <code>Decimal128</code>.</td></tr>
+</table>
+
+<h3>Conclusión</h3>
+<p>Conviene <b>mantener PostgreSQL</b> como sistema de registro de los pedidos de Food Store y no migrar este subconjunto a MongoDB.</p>
+<p><b>Criterio 1 · Integridad transaccional.</b> Crear un pedido no es solo escribir un documento: <code>sp_crear_pedido</code> bloquea el producto con <code>FOR UPDATE</code>, descuenta stock y registra líneas y total en una sola transacción, y los triggers garantizan <code>subtotal = cantidad × precio</code> y <code>total = Σ subtotales</code>. En MongoDB, el validador aseguró la coherencia dentro de cada documento, pero no puede controlar el stock ni la existencia del producto o del usuario en otras colecciones: eso queda a cargo de la aplicación y de transacciones multidocumento.</p>
+<p><b>Criterio 2 · Consistencia entre copias.</b> El experimento mostró que, al modificar un pedido en PostgreSQL, MongoDB conserva datos viejos (total 1770 frente a 1420). Combinar motores obliga a sincronizarlos.</p>
+<p><b>Criterio 3 · Rendimiento de lectura.</b> El documento embebido sí resuelve el «pedido completo» en una lectura indexada, sin JOIN. Pero PostgreSQL ya resuelve esa lectura con índices y la vista <code>v_pedido_detalle</code>.</p>
+<p>MongoDB tendría sentido solo como réplica de lectura alimentada por eventos, si el historial de pedidos creciera mucho.</p>
+
+</body>
+</html>

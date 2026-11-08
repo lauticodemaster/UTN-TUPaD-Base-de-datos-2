@@ -1,0 +1,22 @@
+### PostgreSQL (dentro de la transacción)
+SET
+BEGIN
+DELETE 0
+ id |  estado   |  total  
+----+-----------+---------
+  5 | TERMINADO | 1420.00
+(1 row)
+
+ cantidad_con_producto_7 |   ids   
+-------------------------+---------
+                       3 | 1, 4, 7
+(1 row)
+
+ROLLBACK
+
+### MongoDB (sin cambios: la copia no se sincroniza sola)
+{
+  _id: 5,
+  total: Decimal128('1770.00')
+}
+cantidad_con_producto_7: 4 | ids: 1, 4, 5, 7

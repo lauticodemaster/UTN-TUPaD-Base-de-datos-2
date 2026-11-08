@@ -1,0 +1,126 @@
+########## Contenedor fs_mongo (standalone) ##########
+Servidor: MongoDB 8.0.34 | replica set: false
+
+== A1.a) Update válido que cambia una línea y el total en una sola operación ==
+modificados: 1
+{
+  _id: 2,
+  total: Decimal128('1130.00'),
+  lineas: [
+    {
+      detalle_id: 3,
+      producto_id: 4,
+      nombre: 'Empanada de Carne',
+      categoria: 'Empanadas',
+      cantidad: 4,
+      precio_unitario: Decimal128('150.00'),
+      subtotal: Decimal128('600.00')
+    }
+  ]
+}
+
+== A1.b) Update que cambia la cantidad pero olvida el total: se rechaza ENTERO ==
+Rechazado: Document failed validation
+Estado del documento después del rechazo (sin cambios parciales):
+{
+  _id: 2,
+  total: Decimal128('1130.00'),
+  lineas: [
+    {
+      detalle_id: 3,
+      producto_id: 4,
+      nombre: 'Empanada de Carne',
+      categoria: 'Empanadas',
+      cantidad: 4,
+      precio_unitario: Decimal128('150.00'),
+      subtotal: Decimal128('600.00')
+    }
+  ]
+}
+
+== A1.c) Pedido + descuento de stock en DOS colecciones dentro de una transacción ==
+Transacción NO disponible: This MongoDB deployment does not support retryable writes. Please add retryWrites=false to your connection string.
+Pedido 8 existe: false | stock Gaseosa: 30
+
+== A2) Suma de importes con centavos: double vs Decimal128 (aritmética en el servidor) ==
+[
+  {
+    tipo: 'double',
+    suma_0_10_mas_0_20: 0.30000000000000004,
+    es_igual_a_0_30: false,
+    tres_x_1800_10: 5400.299999999999,
+    tipo_bson: 'double'
+  },
+  {
+    tipo: 'Decimal128',
+    suma_0_10_mas_0_20: Decimal128('0.30'),
+    es_igual_a_0_30: true,
+    tres_x_1800_10: Decimal128('5400.30'),
+    tipo_bson: 'decimal'
+  }
+]
+
+Totales de la colección migrada (Decimal128), suma exacta: 17210.00
+
+########## Contenedor fs_mongo_rs (replica set de un nodo) ##########
+Servidor: MongoDB 8.0.34 | replica set: true
+
+== A1.a) Update válido que cambia una línea y el total en una sola operación ==
+modificados: 1
+{
+  _id: 2,
+  total: Decimal128('1130.00'),
+  lineas: [
+    {
+      detalle_id: 3,
+      producto_id: 4,
+      nombre: 'Empanada de Carne',
+      categoria: 'Empanadas',
+      cantidad: 4,
+      precio_unitario: Decimal128('150.00'),
+      subtotal: Decimal128('600.00')
+    }
+  ]
+}
+
+== A1.b) Update que cambia la cantidad pero olvida el total: se rechaza ENTERO ==
+Rechazado: Document failed validation
+Estado del documento después del rechazo (sin cambios parciales):
+{
+  _id: 2,
+  total: Decimal128('1130.00'),
+  lineas: [
+    {
+      detalle_id: 3,
+      producto_id: 4,
+      nombre: 'Empanada de Carne',
+      categoria: 'Empanadas',
+      cantidad: 4,
+      precio_unitario: Decimal128('150.00'),
+      subtotal: Decimal128('600.00')
+    }
+  ]
+}
+
+== A1.c) Pedido + descuento de stock en DOS colecciones dentro de una transacción ==
+Transacción confirmada. Pedido 8 existe: true | stock Gaseosa: 28
+
+== A2) Suma de importes con centavos: double vs Decimal128 (aritmética en el servidor) ==
+[
+  {
+    tipo: 'double',
+    suma_0_10_mas_0_20: 0.30000000000000004,
+    es_igual_a_0_30: false,
+    tres_x_1800_10: 5400.299999999999,
+    tipo_bson: 'double'
+  },
+  {
+    tipo: 'Decimal128',
+    suma_0_10_mas_0_20: Decimal128('0.30'),
+    es_igual_a_0_30: true,
+    tres_x_1800_10: Decimal128('5400.30'),
+    tipo_bson: 'decimal'
+  }
+]
+
+Totales de la colección migrada (Decimal128), suma exacta: 17210.00
