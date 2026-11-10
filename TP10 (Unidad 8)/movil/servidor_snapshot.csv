@@ -1,0 +1,13 @@
+id,nombre,precio_centavos,stock,disponible,eliminado
+1,Fugazzeta,180000,15,t,f
+2,Mozzarella,160000,20,t,f
+3,Jamón y Queso,200000,12,t,f
+4,Empanada de Carne,15000,50,t,f
+5,Empanada de Pollo,14000,45,t,f
+6,Empanada de Queso,13000,40,t,f
+7,Gaseosa 2L,35000,30,t,f
+8,Jugo Natural,25000,25,t,f
+9,Flan Casero,20000,10,t,f
+10,Brownie,18000,8,t,f
+11,Ensalada Verde,50000,6,t,f
+12,Ensalada César,70000,5,t,f

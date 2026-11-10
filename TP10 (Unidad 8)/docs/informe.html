@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Informe TP Unidad 8 - Food Store en la Feria</title>
+<style>
+  @page { size: A4; margin: 15mm 15mm 15mm 15mm; }
+  body { font-family: "Segoe UI", Arial, sans-serif; font-size: 9.3pt; line-height: 1.36; color: #1d2733; background: #fff; margin: 0; }
+  h1 { font-size: 14.5pt; margin: 0 0 2px; color: #17324d; }
+  h2 { font-size: 11.2pt; color: #17324d; border-bottom: 1.5px solid #17324d; padding-bottom: 2px; margin: 12px 0 5px; }
+  h3 { font-size: 9.8pt; margin: 8px 0 3px; color: #24527a; }
+  p { margin: 2px 0 5px; }
+  .sub { color: #4a5b6c; margin-bottom: 8px; font-size: 8.8pt; }
+  table { border-collapse: collapse; width: 100%; margin: 4px 0 7px; font-size: 8.6pt; }
+  th, td { border: 1px solid #c3ccd6; padding: 3px 6px; text-align: left; vertical-align: top; }
+  th { background: #17324d; color: #fff; font-weight: 600; }
+  tr:nth-child(even) td { background: #f3f6f9; }
+  pre, code { font-family: Consolas, "Courier New", monospace; font-size: 8.2pt; }
+  pre { background: #f3f6f9; border: 1px solid #d5dde5; padding: 4px 7px; margin: 3px 0 6px; white-space: pre-wrap; }
+  .two { display: flex; gap: 8px; } .two > div { flex: 1; min-width: 0; }
+  .box { border: 1px solid #c3ccd6; background: #f8fafc; padding: 5px 8px; margin: 4px 0 7px; border-radius: 3px; }
+  .gold-rule { border-left: 4px solid #b0651a; background: #fff8f0; padding: 5px 8px; margin: 5px 0 8px; font-size: 8.9pt; }
+  .ok { color: #1f7a3a; font-weight: bold; }
+  .warn { color: #b0651a; font-weight: bold; }
+  .err { color: #b91c1c; font-weight: bold; }
+  ul { margin: 2px 0 5px; padding-left: 18px; } li { margin: 1px 0; }
+  .brk { page-break-before: always; }
+</style>
+</head>
+<body>
+
+<h1>Trabajo Práctico N.º 8 (Unidad 8) — Food Store en la Feria</h1>
+<div class="sub">
+  <b>Asignatura:</b> Base de Datos II · Tecnicatura Universitaria en Programación · <b>UTN</b> · <b>Docente:</b> Carlos Yácomo<br>
+  <b>Grupo H (Saferazi):</b> Lautaro Fernandez, Daniela Díaz, Jesús Ramírez, Danilo Serrano, Elio Marí<br>
+  <b>Repositorio:</b> <code>TP10 (Unidad 8)</code> / Etiqueta: <code>tp8</code> · <b>Entorno:</b> PostgreSQL 17, SQLite 3.50+ (STRICT), MongoDB 8.0
+</div>
+
+<div class="gold-rule">
+  <b>Regla de Oro:</b> <i>El móvil propone, el servidor dispone. La tablet solo consulta y arma borradores. Precio, stock y ventas los decide PostgreSQL. SIMULADO_APROBADO no es una venta.</i>
+</div>
+
+<h2>1. Qué datos viajan a la tablet (Consigna 1.a)</h2>
+<p>Para operar en la feria sin conexión estable, la tablet recibe un snapshot podado del catálogo comercial, excluyendo datos sensibles y transacciones históricas ajenas.</p>
+
+<table>
+  <tr>
+    <th style="width: 20%;">Tabla Original</th>
+    <th style="width: 25%;">Columna / Atributo</th>
+    <th style="width: 15%;">¿Viaja?</th>
+    <th>Justificación Técnica, Operativa y de Seguridad</th>
+  </tr>
+  <tr>
+    <td><code>producto</code></td>
+    <td><code>id, nombre</code></td>
+    <td><span class="ok">SÍ</span></td>
+    <td>Identificación unívoca y visualización en el menú del punto de venta.</td>
+  </tr>
+  <tr>
+    <td><code>producto</code></td>
+    <td><code>precio</code> &rarr; <code>precio_centavos</code></td>
+    <td><span class="ok">SÍ</span></td>
+    <td>Entero en centavos (<code>ROUND(precio*100)</code>) para evitar desvíos de redondeo de punto flotante.</td>
+  </tr>
+  <tr>
+    <td><code>producto</code></td>
+    <td><code>stock</code> &rarr; <code>stock_visto</code></td>
+    <td><span class="ok">SÍ</span></td>
+    <td>Referencia visual para que el cajero conozca la disponibilidad aproximada al iniciar el turno.</td>
+  </tr>
+  <tr>
+    <td><code>producto</code></td>
+    <td><code>disponible, eliminado</code></td>
+    <td><span class="ok">SÍ</span></td>
+    <td>Permite aplicar el patrón de lápidas (tombstones): los productos eliminados permanecen físicamente pero no se ofrecen.</td>
+  </tr>
+  <tr>
+    <td><code>producto</code></td>
+    <td><code>categoria_id, imagen, created_at</code></td>
+    <td><span class="err">NO</span></td>
+    <td>Metadatos y binarios prescindibles para la venta rápida; reducen consumo de almacenamiento y datos móviles.</td>
+  </tr>
+  <tr>
+    <td><code>usuario</code></td>
+    <td><code>contrasena, mail, celular, rol</code></td>
+    <td><span class="err">NO</span></td>
+    <td><b>Seguridad Zero Trust:</b> Dispositivos móviles en ferias públicas están expuestos a hurto. Ningún hash de credencial ni dato personal viaja al borde.</td>
+  </tr>
+  <tr>
+    <td><code>pedido / detalle</code></td>
+    <td>Histórico general central</td>
+    <td><span class="err">NO</span></td>
+    <td>La tablet solo gestiona sus propios borradores de la jornada; no requiere información contable previa de la sucursal.</td>
+  </tr>
+</table>
+
+<p><b>Por qué y Fuente de Verdad:</b> La tablet opera con una proyección de lectura desacoplada para garantizar agilidad de atención y confidencialidad ante la sustracción del dispositivo. <b>La única fuente de verdad (SSOT) es PostgreSQL</b>, quien gobierna el catálogo maestro, el inventario real y la consolidación de transacciones contables válidas.</p>
+
+<h2>2. Sincronización y Resolución del Semáforo (Consigna 2.c)</h2>
+<p>El semáforo evalúa en una consulta agregada las solicitudes con <code>estado = 'PENDIENTE'</code> frente a <code>snapshot_servidor</code> con prioridad estricta: <b>Rojo (RECHAZADO) &gt; Amarillo (CONFLICTO) &gt; Verde (SIMULADO_APROBADO)</b>.</p>
+
+<table>
+  <tr>
+    <th style="width: 8%;">Caso</th>
+    <th style="width: 27%;">Preparación del Escenario</th>
+    <th style="width: 25%;">Resultado del Semáforo</th>
+    <th>Explicación Técnica y Justificación</th>
+  </tr>
+  <tr>
+    <td><b>C2</b></td>
+    <td>Borrador con Fugazzeta a 180.000 centavos ($1.800). Servidor actualiza a 210.000 centavos ($2.100).</td>
+    <td><span class="warn">CONFLICTO</span> &rarr; Cliente acepta &rarr; <span class="ok">SIMULADO_APROBADO</span></td>
+    <td>Detecta que el precio del borrador difiere del servidor. Tras re-cotizar el borrador y generar la solicitud <code>req-c2-v2</code> con el precio aceptado, el semáforo aprueba la simulación.</td>
+  </tr>
+  <tr>
+    <td><b>C3</b></td>
+    <td>Borrador solicita 30 unidades de Fugazzeta. Servidor reporta solo 15 en stock.</td>
+    <td><span class="err">RECHAZADO</span><br><small>Motivo: Stock insuficiente</small></td>
+    <td>La condición <code>i.cantidad &gt; s.stock</code> activa la prioridad roja impidiendo comprometer stock físico inexistente.</td>
+  </tr>
+  <tr>
+    <td><b>C4</b></td>
+    <td>Borrador incluye Jamón y Queso (id 3). Servidor aplica baja lógica (<code>eliminado = 't'</code>).</td>
+    <td><span class="err">RECHAZADO</span><br><small>Motivo: Producto no disponible o dado de baja</small></td>
+    <td>Al recargar el catálogo local, la fila persiste en <code>producto_cache</code> con <code>eliminado = 1</code> (lápida / tombstone) preservando integridad referencial pero saliendo de las consultas comerciales.</td>
+  </tr>
+  <tr>
+    <td><b>C5</b></td>
+    <td>Borrador con Mozzarella (2 u. a $1.600). Stock servidor: 20 u. al mismo precio.</td>
+    <td><span class="ok">SIMULADO_APROBADO</span><br><small>Coincidencia plena</small></td>
+    <td>Stock suficiente, producto activo y precio idéntico. Es factible pero <b>no crea venta en PostgreSQL</b>.</td>
+  </tr>
+  <tr>
+    <td><b>C6</b></td>
+    <td>Reenvío de la misma solicitud con idéntico <code>solicitud_uuid</code> (<code>req-c5-001</code>).</td>
+    <td><b>Error PK</b> (SQLite)<br>Simulación no reevalúa</td>
+    <td>La clave primaria previene registros duplicados en la tablet. Al re-ejecutar el semáforo, solo evalúa <code>WHERE estado = 'PENDIENTE'</code>, manteniendo inalteradas las solicitudes resueltas.</td>
+  </tr>
+</table>
+
+<div class="box">
+  <b>Protección real en un sistema productivo (Parada 8):</b> La protección de idempotencia reside obligatoriamente en el servidor PostgreSQL mediante una columna <code>idempotency_key</code> o <code>solicitud_uuid</code> con restricción <code>UNIQUE</code> en la tabla de ventas; ante reenvíos por desconexión de red, el backend detecta el UUID existente y retorna la respuesta previa con HTTP 200 sin duplicar cobros ni rebajas de stock.
+</div>
+
+<p><b>Verificación de Inmutabilidad en PostgreSQL:</b> Tras la ejecución de todos los casos móviles, se consultó el servidor central:</p>
+<pre>SELECT (SELECT count(*) FROM foodstore.pedido) AS pedidos, (SELECT sum(stock) FROM foodstore.producto) AS stock_total;
+-- Resultado: Pedidos = 3 (o los del seed) | Stock Total = 261 (exactamente inmutables; no se alteró nada en el servidor).</pre>
+
+<div class="brk"></div>
+
+<h2>3. Mapa de la Capa de Datos (Consigna 3.a)</h2>
+<p>Arquitectura tripartita de almacenamiento del proyecto integrador Food Store:</p>
+
+<table>
+  <tr>
+    <th style="width: 18%;">Motor</th>
+    <th style="width: 22%;">Rol y Paradigma</th>
+    <th style="width: 35%;">¿Qué guarda?</th>
+    <th>¿Quién manda sobre cada dato?</th>
+  </tr>
+  <tr>
+    <td><b>PostgreSQL 17</b></td>
+    <td><b>Núcleo Transaccional (OLTP)</b><br>Relacional ACID</td>
+    <td>Catálogo maestro (<code>producto, categoria</code>), cuentas y contraseñas (<code>usuario</code>), transacciones comerciales definitivas (<code>pedido, detalle_pedido</code>) y stock oficial.</td>
+    <td><b>Fuente de Verdad (SSOT):</b> Autoridad suprema sobre precios oficiales, stock real, cobros y ventas confirmadas.</td>
+  </tr>
+  <tr>
+    <td><b>MongoDB 8.0</b></td>
+    <td><b>Lectura y Analítica (U7)</b><br>Documental NoSQL</td>
+    <td>Colección <code>pedidos</code>: Documentos desnormalizados con datos del cliente embebidos y arreglo de líneas de productos embebidas para reportes y lectura rápida.</td>
+    <td><b>Subordinado a PostgreSQL:</b> Proyección derivada aguas abajo (mediante eventos o ETL). No gobierna inventario ni catálogo maestro.</td>
+  </tr>
+  <tr>
+    <td><b>SQLite 3.50+</b></td>
+    <td><b>Capa Móvil Offline (U8)</b><br>Relacional Embebido STRICT</td>
+    <td>Base <code>foodstore_movil.db</code>: Copia local de lectura (<code>producto_cache</code>), borradores locales (<code>pedido_borrador, item_borrador</code>) y cola de evaluación (<code>cola_sync</code>).</td>
+    <td><b>Manda solo sobre sus borradores locales:</b> Cero autoridad sobre el servidor. No modifica stock ni precios centrales. "El móvil propone, el servidor dispone".</td>
+  </tr>
+</table>
+
+<h2>4. Plan de Mantenimiento Móvil y Servidor (Consigna 3.b)</h2>
+<ul>
+  <li><b>¿Qué se respalda y cómo se prueba la restauración?</b>
+    El servidor PostgreSQL se respalda diariamente con <code>pg_dump -Fc</code> (formato binario custom con metadatos y checksums). La restauración se prueba semanalmente de forma automatizada en un entorno descartable (<code>foodstore_restore_test</code>) validando el RTO y verificando conteos de filas (Unidad 6). En la tablet SQLite, la base es efímera: <code>producto_cache</code> se descarga bajo demanda desde PostgreSQL, y los borradores locales no sincronizados se respaldan en un log JSON local y copia de archivo <code>.db</code> antes de sincronizar.
+  </li>
+  <li><b>Si se restaura un respaldo viejo de PostgreSQL, ¿qué hacen las tablets?</b>
+    Las tablets detectan un desfasaje de época o timestamp al contactar al servidor. Inmediatamente <b>invalidan su <code>producto_cache</code></b>, descargan la instantánea limpia de PostgreSQL restaurado y <b>fuerzan una re-evaluación del semáforo</b> sobre todos los borradores locales pendientes. Aquellos pedidos previamente aprobados cuyo stock o precio difiera en la base recuperada pasan a <code>CONFLICTO</code> o <code>RECHAZADO</code> para re-cotización con el cliente.
+  </li>
+  <li><b>¿Cada cuánto y quién revisa las solicitudes en CONFLICTO o RECHAZADO?</b>
+    <b>En tiempo real:</b> El cajero del food truck resuelve las incidencias en el mostrador (consulta al cliente si acepta el nuevo precio o propone un sustituto ante falta de stock).<br>
+    <b>Al cierre de jornada:</b> El Supervisor de Operaciones audita la cola consolidada para detectar divergencias crónicas entre inventario físico y teórico, o caídas recurrentes de señal.
+  </li>
+</ul>
+
+<h2>5. Code Review con IA sobre Scripts de la Cursada (Consigna 3.c)</h2>
+<p>Revisión sistemática de scripts de la cursada mediante OpenCode / IA en agente Plan:</p>
+
+<table>
+  <tr>
+    <th style="width: 14%;">Unidad</th>
+    <th style="width: 32%;">Hallazgo Detectado</th>
+    <th style="width: 18%;">Decisión</th>
+    <th>Comprobación en Base y Justificación Técnica</th>
+  </tr>
+  <tr>
+    <td><b>U1 (Relacional)</b><br><code>schema.sql</code></td>
+    <td>En <code>detalle_pedido</code>, <code>subtotal</code> se calcula por trigger pero carece de un <code>CHECK</code> de consistencia ante modificaciones externas.</td>
+    <td><span class="ok">Aceptado / Corregido</span></td>
+    <td>Se agregó <code>CHECK (subtotal = cantidad * precio_unitario)</code>. Se comprobó en PostgreSQL que rechaza sentencias DML anómalas que intenten desfasar el subtotal.</td>
+  </tr>
+  <tr>
+    <td><b>U6 (Backups)</b><br><code>restore_test.ps1</code></td>
+    <td>La IA propuso aplicar <code>pg_restore --clean --if-exists</code> de forma desatendida en el script sobre la base de producción ante alertas de fallo.</td>
+    <td><span class="err">Descartado con Fundamento</span></td>
+    <td><b>Descarte Crítico:</b> Ejecutar un <code>DROP DATABASE</code> forzado sobre producción sin comprobación de bloqueos ni aislamiento previo de sesiones activas es un riesgo severo de destrucción transaccional. La automatización se limita a staging (<code>foodstore_restore_test</code>); en producción requiere desconexión formal y autorización humana.</td>
+  </tr>
+  <tr>
+    <td><b>U7 (NoSQL)</b><br><code>consultas_mongo.js</code></td>
+    <td>Los importes en MongoDB se insertaban como números de punto flotante binario (<code>Double</code>), provocando pérdida de centavos por redondeo IEEE 754.</td>
+    <td><span class="ok">Aceptado / Corregido</span></td>
+    <td>Se migró a <code>Decimal128</code> (<code>NumberDecimal</code>) con validador de esquema BSON. Se ejecutaron agregaciones comprobando sumas exactas de facturación.</td>
+  </tr>
+  <tr>
+    <td><b>U8 (SQLite)</b><br><code>schema_sqlite.sql</code></td>
+    <td>SQLite por defecto permite tipado dinámico débil (afinidad), permitiendo almacenar texto en columnas numéricas y monetarias.</td>
+    <td><span class="ok">Aceptado / Corregido</span></td>
+    <td>Se forzó la cláusula <code>STRICT</code> en las 4 tablas SQLite. Se probó <code>INSERT</code> con strings en <code>precio_centavos</code> y el motor bloqueó el error inmediatamente.</td>
+  </tr>
+</table>
+
+<h2>6. Conclusión</h2>
+<p>El diseño offline del Food Store resuelve la resiliencia en ferias gastronómicas manteniendo la integridad del negocio: tipado fuerte local con SQLite STRICT, detección temprana de desvíos mediante el semáforo y estricto respeto a la autoridad central de PostgreSQL.</p>
+
+</body>
+</html>
