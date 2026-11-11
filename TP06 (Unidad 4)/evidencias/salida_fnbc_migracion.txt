@@ -1,0 +1,84 @@
+### Corrida 1: migración en foodstore_test
+SET
+CREATE TABLE
+CREATE TABLE
+INSERT 0 3
+INSERT 0 3
+CREATE TABLE
+INSERT 0 3
+BEGIN
+psql:sql/tp_fnbc_control_lote.sql:74: NOTICE:  Validación FD: F2 se cumple en los datos (0 responsables con >1 depósito)
+DO
+CREATE TABLE
+CREATE TABLE
+CREATE FUNCTION
+CREATE TRIGGER
+CREATE VIEW
+INSERT 0 2
+INSERT 0 3
+psql:sql/tp_fnbc_control_lote.sql:171: NOTICE:  Verificación: original=3 vista=3 perdidas=0 espurias=0
+DO
+ lote_id | deposito_id | responsable_control_id 
+---------+-------------+------------------------
+     501 |          30 |                    801
+     502 |          30 |                    801
+     503 |          31 |                    802
+(3 filas)
+
+COMMIT
+BEGIN
+INSERT 0 1
+        prueba         | filas 
+-----------------------+-------
+ insercion_sin_lote_ok |     1
+(1 fila)
+
+ROLLBACK
+BEGIN
+UPDATE 1
+         prueba         | lote_id | deposito_id 
+------------------------+---------+-------------
+ actualizacion_una_fila |     501 |          31
+ actualizacion_una_fila |     502 |          31
+(2 filas)
+
+ROLLBACK
+BEGIN
+INSERT 0 1
+SAVEPOINT
+psql:sql/tp_fnbc_control_lote.sql:212: NOTICE:  Salvaguarda F1 OK: F1 violada: el lote 501 ya tiene responsable en ese depósito
+DO
+ROLLBACK
+### Reversión
+SET
+BEGIN
+DO
+INSERT 0 0
+DROP VIEW
+DROP TRIGGER
+DROP FUNCTION
+DROP TABLE
+DROP TABLE
+ filas_control_lote_almacen 
+----------------------------
+                          3
+(1 fila)
+
+COMMIT
+### Objetos tras reversión
+control_lote_almacen
+### Corrida 2: re-migración tras reversión
+psql:sql/tp_fnbc_control_lote.sql:26: NOTICE:  relation "lote" already exists, skipping
+psql:sql/tp_fnbc_control_lote.sql:27: NOTICE:  relation "deposito" already exists, skipping
+psql:sql/tp_fnbc_control_lote.sql:38: NOTICE:  relation "control_lote_almacen" already exists, skipping
+psql:sql/tp_fnbc_control_lote.sql:74: NOTICE:  Validación FD: F2 se cumple en los datos (0 responsables con >1 depósito)
+psql:sql/tp_fnbc_control_lote.sql:171: NOTICE:  Verificación: original=3 vista=3 perdidas=0 espurias=0
+COMMIT
+psql:sql/tp_fnbc_control_lote.sql:212: NOTICE:  Salvaguarda F1 OK: F1 violada: el lote 501 ya tiene responsable en ese depósito
+
+### Prueba de aborto: dato sucio (503,30,802) => 802 en depósitos 30 y 31, viola F2
+BEGIN
+psql:sql/tp_fnbc_control_lote.sql:74: ERROR:  F2 (responsable -> deposito) no se cumple en 1 responsables: migración abortada
+### Objetos nuevos creados tras el aborto (esperado: ninguno)
+(ninguno)
+filas en control_lote_almacen: 4

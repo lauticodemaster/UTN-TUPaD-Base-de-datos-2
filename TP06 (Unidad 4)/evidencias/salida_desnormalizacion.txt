@@ -1,0 +1,89 @@
+### Aplicación del patrón
+SET
+BEGIN
+CREATE TABLE
+COMMENT
+INSERT 0 733
+CREATE INDEX
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE TRIGGER
+CREATE FUNCTION
+CREATE TRIGGER
+CREATE FUNCTION
+CREATE TRIGGER
+CREATE FUNCTION
+CREATE TRIGGER
+CREATE TRIGGER
+COMMIT
+ANALYZE
+ fecha | categoria_id | total_fuente | total_redundante 
+-------+--------------+--------------+------------------
+(0 filas)
+
+### Pruebas de sincronización (transacción revertida)
+SET
+BEGIN
+INSERT 0 1
+INSERT 0 2
+caso 1 - alta de pedido con 2 lineas
+SET
+ fecha | categoria_id | total_fuente | total_redundante 
+-------+--------------+--------------+------------------
+(0 filas)
+
+UPDATE 1
+caso 2 - update de cantidad
+SET
+ fecha | categoria_id | total_fuente | total_redundante 
+-------+--------------+--------------+------------------
+(0 filas)
+
+DELETE 0
+caso 3 - baja logica de una linea
+SET
+ fecha | categoria_id | total_fuente | total_redundante 
+-------+--------------+--------------+------------------
+(0 filas)
+
+UPDATE 1
+caso 4 - cambio de fecha del pedido
+SET
+ fecha | categoria_id | total_fuente | total_redundante 
+-------+--------------+--------------+------------------
+(0 filas)
+
+DELETE 0
+caso 5 - baja logica del pedido
+SET
+ fecha | categoria_id | total_fuente | total_redundante 
+-------+--------------+--------------+------------------
+(0 filas)
+
+UPDATE 1
+caso 6 - cambio de categoria de producto
+SET
+ fecha | categoria_id | total_fuente | total_redundante 
+-------+--------------+--------------+------------------
+(0 filas)
+
+SAVEPOINT
+caso 7 - TRUNCATE detalle_pedido (debe fallar)
+psql:pruebas_sincronizacion_vcd.sql:41: ERROR:  TRUNCATE de detalle_pedido deshabilitado: desincronizaría venta_categoria_dia
+CONTEXTO:  PL/pgSQL function fn_vcd_no_truncate() line 3 at RAISE
+ROLLBACK
+UPDATE 1
+caso 8 - corrupcion deliberada (la auditoria debe devolver 1 fila)
+SET
+   fecha    | categoria_id | total_fuente | total_redundante 
+------------+--------------+--------------+------------------
+ 2026-11-11 |            1 |      5550.00 |          5551.00
+(1 fila)
+
+ROLLBACK
+### Auditoría final sobre la base migrada
+SET
+ fecha | categoria_id | total_fuente | total_redundante 
+-------+--------------+--------------+------------------
+(0 filas)
+

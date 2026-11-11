@@ -1,0 +1,10 @@
+2026-11-11 01:53:19.244 GMT [14156] user=[unknown] db=[unknown] host=127.0.0.1 app=[unknown] LOG:  connection received: host=127.0.0.1 port=58353
+2026-11-11 01:53:19.254 GMT [14156] user=app_web db=foodstore_test host=127.0.0.1 app=[unknown] LOG:  connection authenticated: identity="app_web" method=scram-sha-256 (<PGDATA>/pg_hba.conf:3)
+2026-11-11 01:53:19.254 GMT [14156] user=app_web db=foodstore_test host=127.0.0.1 app=[unknown] LOG:  connection authorized: user=app_web database=foodstore_test application_name=psql
+2026-11-11 01:53:19.338 GMT [14156] user=app_web db=foodstore_test host=127.0.0.1 app=tp_u5_parte_b LOG:  statement: INSERT INTO pedido (forma_pago, usuario_id) VALUES ('TARJETA', 10) RETURNING id AS pid 
+2026-11-11 01:53:19.342 GMT [14156] user=app_web db=foodstore_test host=127.0.0.1 app=tp_u5_parte_b LOG:  statement: INSERT INTO detalle_pedido (cantidad, pedido_id, producto_id) VALUES (1, 200011, 3);
+2026-11-11 01:53:19.347 GMT [14156] user=app_web db=foodstore_test host=127.0.0.1 app=tp_u5_parte_b LOG:  statement: UPDATE pedido SET estado = 'CONFIRMADO' WHERE id = 200011;
+2026-11-11 01:53:19.348 GMT [14156] user=app_web db=foodstore_test host=127.0.0.1 app=tp_u5_parte_b LOG:  disconnection: session time: 0:00:00.107 user=app_web database=foodstore_test host=127.0.0.1 port=58353
+2026-11-11 01:53:19.390 GMT [17456] user=[unknown] db=[unknown] host=127.0.0.1 app=[unknown] LOG:  connection received: host=127.0.0.1 port=58810
+2026-11-11 01:53:19.400 GMT [17456] user=app_web db=foodstore_test host=127.0.0.1 app=[unknown] FATAL:  password authentication failed for user "app_web"
+2026-11-11 01:53:19.400 GMT [17456] user=app_web db=foodstore_test host=127.0.0.1 app=[unknown] DETAIL:  Connection matched file "<PGDATA>/pg_hba.conf" line 3: "host all all      127.0.0.1/32 scram-sha-256"

@@ -6,7 +6,8 @@
 | `Parte2_Respaldo/` | `backup_foodstore.sh` / `.ps1` (`backups/` y `logs/` se generan al ejecutar) |
 | `Parte3_Monitoreo_Mantenimiento/` | `health_check.sql`, `maintenance.sql` |
 | `Parte4_Simulacro/` | `restore_test.sh` / `.ps1`, `validacion.sql` |
-| `Parte5_Informe/` | `informe_u6.md` (plantilla a completar con los valores observados; exportar a `informe_u6.pdf`) |
+| `Parte5_Informe/` | `informe_u6.pdf` (informe post-incidente) |
+| `Parte6_Programacion/` | `programar_mantenimiento.ps1`: respaldo diario + retención 14 días, mantenimiento semanal, prueba de restauración mensual (incluye equivalente cron) |
 
 ## Orden de ejecución (PowerShell, contraseña solo en la sesión)
 

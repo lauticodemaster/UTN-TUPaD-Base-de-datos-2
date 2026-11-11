@@ -1,0 +1,127 @@
+SET
+=== \du (roles del proyecto) ===
+            Listado de roles
+   Nombre de rol   |      Atributos      
+-------------------+---------------------
+ admin_datos       | 3 conexiones
+ app_web           | 20 conexiones
+ reportes_bi       | 2 conexiones
+ rol_app_escritura | No puede conectarse
+ rol_app_lectura   | No puede conectarse
+ rol_auditor       | No puede conectarse
+ rol_reportes      | No puede conectarse
+ rol_soporte       | No puede conectarse
+ soporte_ops       | 2 conexiones
+
+=== Membresías (con/sin ADMIN OPTION) ===
+   miembro   |        rol        | admin_option 
+-------------+-------------------+--------------
+ app_web     | rol_app_escritura | f
+ app_web     | rol_app_lectura   | f
+ reportes_bi | rol_reportes      | f
+ soporte_ops | rol_soporte       | f
+(4 filas)
+
+=== Privilegios de tabla (information_schema.role_table_grants) ===
+      grantee      |      table_name       | privilegios | con_grant_option 
+-------------------+-----------------------+-------------+------------------
+ rol_app_escritura | detalle_pedido        | INSERT      | f
+ rol_app_escritura | pedido                | INSERT      | f
+ rol_app_lectura   | categoria             | SELECT      | f
+ rol_app_lectura   | detalle_pedido        | SELECT      | f
+ rol_app_lectura   | pedido                | SELECT      | f
+ rol_app_lectura   | producto              | SELECT      | f
+ rol_auditor       | auditoria_login       | SELECT      | f
+ rol_reportes      | usuario_anon          | SELECT      | f
+ rol_reportes      | v_categorias_vigentes | SELECT      | f
+ rol_reportes      | v_pedidos_resumen     | SELECT      | f
+ rol_reportes      | v_productos_vigentes  | SELECT      | f
+ rol_reportes      | venta_categoria_dia   | SELECT      | f
+ rol_soporte       | detalle_pedido        | SELECT      | f
+ rol_soporte       | pedido                | SELECT      | f
+ rol_soporte       | producto              | SELECT      | f
+(15 filas)
+
+=== Vistas materializadas (information_schema no las lista) ===
+     rolname     | select_mv 
+-----------------+-----------
+ app_web         | f
+ rol_app_lectura | f
+ rol_reportes    | t
+ rol_soporte     | f
+(4 filas)
+
+=== Privilegios de columna sobre usuario (information_schema.column_privileges) ===
+      grantee      | privilege_type |                            columnas                             
+-------------------+----------------+-----------------------------------------------------------------
+ rol_app_escritura | INSERT         | apellido, celular, contrasena, mail, nombre
+ rol_app_escritura | UPDATE         | apellido, celular, nombre
+ rol_app_lectura   | SELECT         | apellido, celular, created_at, eliminado, id, mail, nombre, rol
+ rol_soporte       | SELECT         | apellido, celular, created_at, eliminado, id, mail, nombre
+(4 filas)
+
+=== ¿Alguien que no sea admin_datos puede leer usuario.contrasena? (esperado: solo admin_datos) ===
+   rolname   
+-------------
+ admin_datos
+(1 fila)
+
+=== EXECUTE sobre funciones sensibles ===
+   rolname   | fn_autenticar | fn_resetear_password 
+-------------+---------------+----------------------
+ PUBLIC      | f             | f
+ admin_datos | t             | t
+ app_web     | t             | f
+ reportes_bi | f             | f
+ soporte_ops | f             | t
+(5 filas)
+
+=== Default privileges ===
+              Privilegios de acceso por omisi�n
+     Due     | Esquema | Tipo  |        Privilegios        
+-------------+---------+-------+---------------------------
+ admin_datos |         | funci | admin_datos=X/admin_datos
+(1 fila)
+
+=== Pruebas negativas (cada una debe FALLAR con permission denied) ===
+SET
+psql:sql/verificacion_permisos.sql:71: ERROR:  permission denied for table usuario
+psql:sql/verificacion_permisos.sql:72: ERROR:  permission denied for table usuario
+psql:sql/verificacion_permisos.sql:73: ERROR:  permission denied for table pedido
+psql:sql/verificacion_permisos.sql:74: ERROR:  permission denied for schema foodstore
+L�NEA 1: CREATE TABLE foodstore.tabla_intrusa (id int);
+                     ^
+RESET
+SET
+psql:sql/verificacion_permisos.sql:77: ERROR:  permission denied for table usuario
+RESET
+SET
+psql:sql/verificacion_permisos.sql:80: ERROR:  permission denied for table pedido
+RESET
+=== Pruebas positivas (cada una debe FUNCIONAR, en transacción revertida) ===
+BEGIN
+SET
+  id   |   rol   
+-------+---------
+ 20008 | USUARIO
+(1 fila)
+
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+   id   |  total  
+--------+---------
+ 200010 | 3600.00
+(1 fila)
+
+RESET
+SET
+ filas_usuario_anon 
+--------------------
+              20005
+(1 fila)
+
+RESET
+ROLLBACK
+=== Prueba de ALTER DEFAULT PRIVILEGES: función nueva creada por admin_datos (esperado: false) ===
+PUBLIC puede ejecutar fn nueva: false

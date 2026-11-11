@@ -1,0 +1,7 @@
+### Prueba: ¿la contraseña llega al log crudo? (consulta con literales vs. parametrizada con \bind)
+2026-11-11 01:57:33.881 GMT [11488] user=app_web db=foodstore_test host=127.0.0.1 app=psql LOG:  fn_autenticar: FALLO mail=literal@anon.example fallos_previos_15min=0
+2026-11-11 01:57:33.881 GMT [11488] user=app_web db=foodstore_test host=127.0.0.1 app=psql STATEMENT:  SELECT fn_autenticar('literal@anon.example', 'SecretoLiteral99');
+2026-11-11 01:57:33.895 GMT [11488] user=app_web db=foodstore_test host=127.0.0.1 app=psql LOG:  fn_autenticar: FALLO mail=bind@anon.example fallos_previos_15min=0
+2026-11-11 01:57:33.895 GMT [11488] user=app_web db=foodstore_test host=127.0.0.1 app=psql STATEMENT:  SELECT fn_autenticar($1, $2) 
+### apariciones de 'SecretoLiteral99' en el log crudo: 1
+### apariciones de 'SecretoBind99' en el log crudo: 0

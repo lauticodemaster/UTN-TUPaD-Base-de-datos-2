@@ -1,0 +1,15 @@
+SET
+BEGIN
+ filas_incoherentes 
+--------------------
+                  0
+(1 fila)
+
+ALTER TABLE
+COMMIT
+BEGIN
+ALTER TABLE
+SAVEPOINT
+psql:cr01_check_subtotal.sql:34: NOTICE:  CR-01 OK, rechazado: new row for relation "detalle_pedido" violates check constraint "chk_detalle_subtotal_coherente"
+DO
+ROLLBACK

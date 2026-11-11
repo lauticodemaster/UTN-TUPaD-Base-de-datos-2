@@ -1,0 +1,49 @@
+2026-11-11 01:57:18.976 GMT [24716] user=[unknown] db=[unknown] host=127.0.0.1 app=[unknown] LOG:  connection received: host=127.0.0.1 port=59668
+2026-11-11 01:57:18.987 GMT [24716] user=app_web db=foodstore_test host=127.0.0.1 app=[unknown] LOG:  connection authenticated: identity="app_web" method=scram-sha-256 (<PGDATA>/pg_hba.conf:3)
+2026-11-11 01:57:18.987 GMT [24716] user=app_web db=foodstore_test host=127.0.0.1 app=[unknown] LOG:  connection authorized: user=app_web database=foodstore_test application_name=psql
+2026-11-11 01:57:19.008 GMT [3204] user=[unknown] db=[unknown] host=127.0.0.1 app=[unknown] LOG:  connection received: host=127.0.0.1 port=64819
+2026-11-11 01:57:19.015 GMT [3204] user=app_web db=foodstore_test host=127.0.0.1 app=[unknown] LOG:  connection authenticated: identity="app_web" method=scram-sha-256 (<PGDATA>/pg_hba.conf:3)
+2026-11-11 01:57:19.015 GMT [3204] user=app_web db=foodstore_test host=127.0.0.1 app=[unknown] LOG:  connection authorized: user=app_web database=foodstore_test application_name=psql
+2026-11-11 01:57:19.017 GMT [24716] user=app_web db=foodstore_test host=127.0.0.1 app=psql LOG:  disconnection: session time: 0:00:00.046 user=app_web database=foodstore_test host=127.0.0.1 port=59668
+2026-11-11 01:57:19.040 GMT [3204] user=app_web db=foodstore_test host=127.0.0.1 app=psql LOG:  fn_autenticar: FALLO mail=cliente_1@anon.example fallos_previos_15min=4
+2026-11-11 01:57:19.040 GMT [3204] user=app_web db=foodstore_test host=127.0.0.1 app=psql CONTEXT:  PL/pgSQL function fn_autenticar(text,text) line 33 at RAISE
+2026-11-11 01:57:19.040 GMT [3204] user=app_web db=foodstore_test host=127.0.0.1 app=psql STATEMENT:  SELECT fn_autenticar('cliente_1@anon.example', '<CLAVE_REDACTADA>')   AS intento_1;
+2026-11-11 01:57:19.041 GMT [3204] user=app_web db=foodstore_test host=127.0.0.1 app=psql LOG:  fn_autenticar: BLOQUEADO mail=cliente_1@anon.example fallos_15min=5
+2026-11-11 01:57:19.041 GMT [3204] user=app_web db=foodstore_test host=127.0.0.1 app=psql CONTEXT:  PL/pgSQL function fn_autenticar(text,text) line 15 at RAISE
+2026-11-11 01:57:19.041 GMT [3204] user=app_web db=foodstore_test host=127.0.0.1 app=psql STATEMENT:  SELECT fn_autenticar('cliente_1@anon.example', '<CLAVE_REDACTADA>')    AS intento_2;
+2026-11-11 01:57:19.042 GMT [3204] user=app_web db=foodstore_test host=127.0.0.1 app=psql LOG:  fn_autenticar: BLOQUEADO mail=cliente_1@anon.example fallos_15min=6
+2026-11-11 01:57:19.042 GMT [3204] user=app_web db=foodstore_test host=127.0.0.1 app=psql CONTEXT:  PL/pgSQL function fn_autenticar(text,text) line 15 at RAISE
+2026-11-11 01:57:19.042 GMT [3204] user=app_web db=foodstore_test host=127.0.0.1 app=psql STATEMENT:  SELECT fn_autenticar('cliente_1@anon.example', '<CLAVE_REDACTADA>')   AS intento_3;
+2026-11-11 01:57:19.042 GMT [3204] user=app_web db=foodstore_test host=127.0.0.1 app=psql LOG:  fn_autenticar: BLOQUEADO mail=cliente_1@anon.example fallos_15min=7
+2026-11-11 01:57:19.042 GMT [3204] user=app_web db=foodstore_test host=127.0.0.1 app=psql CONTEXT:  PL/pgSQL function fn_autenticar(text,text) line 15 at RAISE
+2026-11-11 01:57:19.042 GMT [3204] user=app_web db=foodstore_test host=127.0.0.1 app=psql STATEMENT:  SELECT fn_autenticar('cliente_1@anon.example', '<CLAVE_REDACTADA>')  AS intento_4;
+2026-11-11 01:57:19.043 GMT [3204] user=app_web db=foodstore_test host=127.0.0.1 app=psql LOG:  fn_autenticar: BLOQUEADO mail=cliente_1@anon.example fallos_15min=8
+2026-11-11 01:57:19.043 GMT [3204] user=app_web db=foodstore_test host=127.0.0.1 app=psql CONTEXT:  PL/pgSQL function fn_autenticar(text,text) line 15 at RAISE
+2026-11-11 01:57:19.043 GMT [3204] user=app_web db=foodstore_test host=127.0.0.1 app=psql STATEMENT:  SELECT fn_autenticar('cliente_1@anon.example', '<CLAVE_REDACTADA>')  AS intento_5_exitoso;
+2026-11-11 01:57:19.063 GMT [3372] user=[unknown] db=[unknown] host=127.0.0.1 app=[unknown] LOG:  connection received: host=127.0.0.1 port=64820
+2026-11-11 01:57:19.070 GMT [3372] user=soporte_ops db=foodstore_test host=127.0.0.1 app=[unknown] LOG:  connection authenticated: identity="soporte_ops" method=scram-sha-256 (<PGDATA>/pg_hba.conf:3)
+2026-11-11 01:57:19.070 GMT [3372] user=soporte_ops db=foodstore_test host=127.0.0.1 app=[unknown] LOG:  connection authorized: user=soporte_ops database=foodstore_test application_name=psql
+2026-11-11 01:57:19.073 GMT [3204] user=app_web db=foodstore_test host=127.0.0.1 app=psql LOG:  disconnection: session time: 0:00:00.069 user=app_web database=foodstore_test host=127.0.0.1 port=64819
+2026-11-11 01:57:19.073 GMT [3372] user=soporte_ops db=foodstore_test host=127.0.0.1 app=psql LOG:  statement: SET application_name = 'psql';
+2026-11-11 01:57:19.073 GMT [3372] user=soporte_ops db=foodstore_test host=127.0.0.1 app=psql LOG:  statement: SELECT count(*) AS filas_leidas FROM (
+	    SELECT id, nombre, apellido, mail, celular FROM foodstore.usuario
+	) volcado;
+2026-11-11 01:57:19.077 GMT [3372] user=soporte_ops db=foodstore_test host=127.0.0.1 app=psql LOG:  statement: SELECT id, mail, contrasena FROM foodstore.usuario LIMIT 10;
+2026-11-11 01:57:19.077 GMT [3372] user=soporte_ops db=foodstore_test host=127.0.0.1 app=psql ERROR:  permission denied for table usuario
+2026-11-11 01:57:19.077 GMT [3372] user=soporte_ops db=foodstore_test host=127.0.0.1 app=psql STATEMENT:  SELECT id, mail, contrasena FROM foodstore.usuario LIMIT 10;
+2026-11-11 01:57:19.077 GMT [3372] user=soporte_ops db=foodstore_test host=127.0.0.1 app=psql LOG:  statement: GRANT admin_datos TO soporte_ops;
+2026-11-11 01:57:19.077 GMT [3372] user=soporte_ops db=foodstore_test host=127.0.0.1 app=psql ERROR:  permission denied to grant role "admin_datos"
+2026-11-11 01:57:19.077 GMT [3372] user=soporte_ops db=foodstore_test host=127.0.0.1 app=psql DETAIL:  Only roles with the ADMIN option on role "admin_datos" may grant this role.
+2026-11-11 01:57:19.077 GMT [3372] user=soporte_ops db=foodstore_test host=127.0.0.1 app=psql STATEMENT:  GRANT admin_datos TO soporte_ops;
+2026-11-11 01:57:19.078 GMT [3372] user=soporte_ops db=foodstore_test host=127.0.0.1 app=psql LOG:  statement: SET ROLE admin_datos;
+2026-11-11 01:57:19.078 GMT [3372] user=soporte_ops db=foodstore_test host=127.0.0.1 app=psql ERROR:  permission denied to set role "admin_datos"
+2026-11-11 01:57:19.078 GMT [3372] user=soporte_ops db=foodstore_test host=127.0.0.1 app=psql STATEMENT:  SET ROLE admin_datos;
+2026-11-11 01:57:19.078 GMT [3372] user=soporte_ops db=foodstore_test host=127.0.0.1 app=psql LOG:  statement: SELECT foodstore.fn_resetear_password(25) AS clave_temporal 
+2026-11-11 01:57:19.081 GMT [3372] user=soporte_ops db=foodstore_test host=127.0.0.1 app=psql LOG:  fn_resetear_password: DENEGADO usuario_id=25 es ADMIN, por=soporte_ops
+2026-11-11 01:57:19.081 GMT [3372] user=soporte_ops db=foodstore_test host=127.0.0.1 app=psql CONTEXT:  PL/pgSQL function fn_resetear_password(bigint) line 10 at RAISE
+2026-11-11 01:57:19.081 GMT [3372] user=soporte_ops db=foodstore_test host=127.0.0.1 app=psql STATEMENT:  SELECT foodstore.fn_resetear_password(25) AS clave_temporal 
+2026-11-11 01:57:19.202 GMT [24076] user=[unknown] db=[unknown] host=127.0.0.1 app=[unknown] LOG:  connection received: host=127.0.0.1 port=64821
+2026-11-11 01:57:19.210 GMT [24076] user=app_web db=foodstore_test host=127.0.0.1 app=[unknown] LOG:  connection authenticated: identity="app_web" method=scram-sha-256 (<PGDATA>/pg_hba.conf:3)
+2026-11-11 01:57:19.210 GMT [24076] user=app_web db=foodstore_test host=127.0.0.1 app=[unknown] LOG:  connection authorized: user=app_web database=foodstore_test application_name=psql
+2026-11-11 01:57:19.212 GMT [3372] user=soporte_ops db=foodstore_test host=127.0.0.1 app=psql LOG:  disconnection: session time: 0:00:00.153 user=soporte_ops database=foodstore_test host=127.0.0.1 port=64820
+2026-11-11 01:57:19.212 GMT [24076] user=app_web db=foodstore_test host=127.0.0.1 app=psql LOG:  disconnection: session time: 0:00:00.014 user=app_web database=foodstore_test host=127.0.0.1 port=64821

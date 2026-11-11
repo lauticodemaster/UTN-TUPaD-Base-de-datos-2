@@ -1,0 +1,36 @@
+ intento_1 
+-----------
+          
+(1 fila)
+
+ intento_2 
+-----------
+          
+(1 fila)
+
+ intento_3 
+-----------
+          
+(1 fila)
+
+ intento_4 
+-----------
+          
+(1 fila)
+
+ intento_5_exitoso 
+-------------------
+                  
+(1 fila)
+
+ filas_leidas 
+--------------
+        20005
+(1 fila)
+
+psql:sql/simulacro_incidente.sql:39: ERROR:  permission denied for table usuario
+psql:sql/simulacro_incidente.sql:42: ERROR:  permission denied to grant role "admin_datos"
+DETALLE:  Only roles with the ADMIN option on role "admin_datos" may grant this role.
+psql:sql/simulacro_incidente.sql:43: ERROR:  permission denied to set role "admin_datos"
+reset sobre ADMIN devolvió clave temporal: FALSE
+sin clave temporal: no hay login como ADMIN

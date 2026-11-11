@@ -1,0 +1,47 @@
+### DESPUÉS (consulta 5.2 d sobre venta_categoria_dia) — resultado
+ categoria | total_vendido 
+-----------+---------------
+ Bebidas   |    1236848.83
+ Postres   |    1212002.32
+ Pizzas    |       5200.00
+ Empanadas |        730.00
+ Ensaladas |        500.00
+(5 filas)
+
+### DESPUÉS — Execution Time de 4 corridas previas
+Execution Time: 0.160 ms
+Execution Time: 0.134 ms
+Execution Time: 0.139 ms
+Execution Time: 0.128 ms
+### DESPUÉS — EXPLAIN (ANALYZE, BUFFERS), 5ª corrida
+                                                                     QUERY PLAN                                                                      
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=11.80..11.81 rows=5 width=16) (actual time=0.081..0.083 rows=5.00 loops=1)
+   Buffers: shared hit=10
+   ->  Sort  (cost=11.80..11.81 rows=5 width=16) (actual time=0.080..0.081 rows=5.00 loops=1)
+         Sort Key: v.total_vendido DESC
+         Sort Method: quicksort  Memory: 25kB
+         Buffers: shared hit=10
+         ->  Hash Join  (cost=5.43..11.74 rows=5 width=16) (actual time=0.048..0.058 rows=5.00 loops=1)
+               Hash Cond: (v.categoria_id = c.id)
+               Buffers: shared hit=7
+               ->  Bitmap Heap Scan on venta_categoria_dia v  (cost=4.32..10.61 rows=5 width=16) (actual time=0.025..0.034 rows=5.00 loops=1)
+                     Recheck Cond: (fecha = CURRENT_DATE)
+                     Filter: (total_vendido > '0'::numeric)
+                     Heap Blocks: exact=4
+                     Buffers: shared hit=6
+                     ->  Bitmap Index Scan on pk_venta_categoria_dia  (cost=0.00..4.32 rows=5 width=0) (actual time=0.013..0.014 rows=13.00 loops=1)
+                           Index Cond: (fecha = CURRENT_DATE)
+                           Index Searches: 1
+                           Buffers: shared hit=2
+               ->  Hash  (cost=1.05..1.05 rows=5 width=16) (actual time=0.016..0.017 rows=5.00 loops=1)
+                     Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                     Buffers: shared hit=1
+                     ->  Seq Scan on categoria c  (cost=0.00..1.05 rows=5 width=16) (actual time=0.010..0.011 rows=5.00 loops=1)
+                           Buffers: shared hit=1
+ Planning:
+   Buffers: shared hit=278
+ Planning Time: 3.241 ms
+ Execution Time: 0.128 ms
+(27 filas)
+
